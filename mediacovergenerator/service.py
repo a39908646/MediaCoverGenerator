@@ -4,22 +4,39 @@ import hashlib
 import shutil
 from datetime import datetime
 from pathlib import Path
+from typing import TYPE_CHECKING
 from urllib.parse import urlparse
 
 from mediacovergenerator.emby import EmbyClient
-from mediacovergenerator.fonts import FontResolver
-from mediacovergenerator.generator import PosterGenerator
 from mediacovergenerator.models import AppConfig, HistoryRecord, LibraryInfo
 from mediacovergenerator.storage import HistoryRepository
 from mediacovergenerator.titles import TitleConfigResolver
+
+if TYPE_CHECKING:
+    from mediacovergenerator.fonts import FontResolver
+    from mediacovergenerator.generator import PosterGenerator
 
 
 class LibraryUpdateService:
     def __init__(self, project_root: Path, history_repository: HistoryRepository):
         self.project_root = project_root
         self.history_repository = history_repository
-        self.font_resolver = FontResolver(project_root)
-        self.generator = PosterGenerator(project_root)
+        self._font_resolver: FontResolver | None = None
+        self._generator: PosterGenerator | None = None
+
+    def _get_font_resolver(self) -> "FontResolver":
+        if self._font_resolver is None:
+            from mediacovergenerator.fonts import FontResolver
+
+            self._font_resolver = FontResolver(self.project_root)
+        return self._font_resolver
+
+    def _get_generator(self) -> "PosterGenerator":
+        if self._generator is None:
+            from mediacovergenerator.generator import PosterGenerator
+
+            self._generator = PosterGenerator(self.project_root)
+        return self._generator
 
     def list_libraries(self, config: AppConfig) -> list[LibraryInfo]:
         return EmbyClient(config.emby).list_libraries()
@@ -36,20 +53,21 @@ class LibraryUpdateService:
         if not library:
             raise KeyError(f"Library not found: {library_id}")
 
+        generator = self._get_generator()
         library_name = library["Name"]
         title = TitleConfigResolver.from_config(config).resolve(str(library_id), library_name)
-        font_paths = self.font_resolver.resolve(config)
+        font_paths = self._get_font_resolver().resolve(config)
         source_item_ids = self._prepare_library_images(client, config, library, stop_event)
 
-        encoded_cover = self.generator.render(
+        encoded_cover = generator.render(
             config=config,
             library_name=library_name,
             title=title,
             font_paths=font_paths,
             stop_event=stop_event,
         )
-        image_bytes, content_type, extension = self.generator.decode_image(encoded_cover)
-        saved_path = self.generator.save_recent_cover(
+        image_bytes, content_type, extension = generator.decode_image(encoded_cover)
+        saved_path = generator.save_recent_cover(
             config=config,
             library_name=library_name,
             server_name=config.emby.name,
@@ -78,14 +96,15 @@ class LibraryUpdateService:
         library: dict,
         stop_event,
     ) -> list[str]:
+        generator = self._get_generator()
         library_name = library["Name"]
-        cache_dir = self.generator.library_cache_dir(config, library_name)
+        cache_dir = generator.library_cache_dir(config, library_name)
         cache_dir.mkdir(parents=True, exist_ok=True)
         for file in cache_dir.glob("*"):
             if file.is_file():
                 file.unlink()
 
-        input_dir = self.generator.library_input_dir(config, library_name)
+        input_dir = generator.library_input_dir(config, library_name)
         if input_dir.exists():
             copied = 0
             for source in sorted(input_dir.iterdir()):
@@ -94,7 +113,7 @@ class LibraryUpdateService:
                 copied += 1
                 shutil.copy(source, cache_dir / source.name)
             if copied:
-                self.generator.prepare_library_images(cache_dir, self.generator.get_required_items(config))
+                generator.prepare_library_images(cache_dir, generator.get_required_items(config))
                 return []
 
         items = self._collect_items(client, config, library, stop_event)
@@ -118,11 +137,12 @@ class LibraryUpdateService:
                 source_ids.append(str(item_id))
         if not any(cache_dir.iterdir()):
             raise RuntimeError(f"Unable to download images for library {library_name}")
-        self.generator.prepare_library_images(cache_dir, self.generator.get_required_items(config))
+        generator.prepare_library_images(cache_dir, generator.get_required_items(config))
         return source_ids
 
     def _collect_items(self, client: EmbyClient, config: AppConfig, library: dict, stop_event) -> list[dict]:
-        required_items = self.generator.get_required_items(config)
+        generator = self._get_generator()
+        required_items = generator.get_required_items(config)
         collection_type = library.get("CollectionType")
         if collection_type == "boxsets":
             include_types = "BoxSet,Movie"
@@ -167,7 +187,7 @@ class LibraryUpdateService:
         return valid_items[:required_items]
 
     def _include_types(self, config: AppConfig) -> str:
-        if self.generator.is_single_image_style(config):
+        if self._get_generator().is_single_image_style(config):
             return {
                 "PremiereDate": "Movie,Series",
                 "DateCreated": "Movie,Episode",
@@ -187,7 +207,7 @@ class LibraryUpdateService:
                 return client.build_image_url(item.get("AlbumId"), "Primary", item.get("AlbumPrimaryImageTag"))
 
         prefer_primary = config.cover.use_primary
-        single_style = self.generator.is_single_image_style(config)
+        single_style = self._get_generator().is_single_image_style(config)
         if item.get("Type") == "Episode":
             if not prefer_primary and item.get("ParentBackdropImageTags"):
                 return client.build_image_url(item.get("ParentBackdropItemId"), "Backdrop", item["ParentBackdropImageTags"][0], 0)

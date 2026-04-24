@@ -1,32 +1,40 @@
 from __future__ import annotations
 
 import base64
+from importlib import import_module
 import random
 import re
 import shutil
 from datetime import datetime
 from pathlib import Path
+from typing import TYPE_CHECKING, Callable
 
 from mediacovergenerator.logging import logger
 from mediacovergenerator.models import AppConfig
 from mediacovergenerator.storage import resolve_path
-from mediacovergenerator.style.style_animated_1 import create_style_animated_1
-from mediacovergenerator.style.style_animated_2 import create_style_animated_2
-from mediacovergenerator.style.style_animated_3 import create_style_animated_3
-from mediacovergenerator.style.style_animated_4 import create_style_animated_4
-from mediacovergenerator.style.style_static_1 import create_style_static_1
-from mediacovergenerator.style.style_static_2 import create_style_static_2
-from mediacovergenerator.style.style_static_3 import create_style_static_3
-from mediacovergenerator.style.style_static_4 import create_style_static_4
 from mediacovergenerator.titles import ResolvedTitle
-from mediacovergenerator.utils.image_manager import ResolutionConfig
-from mediacovergenerator.utils.network_helper import validate_font_file
+
+if TYPE_CHECKING:
+    from mediacovergenerator.utils.image_manager import ResolutionConfig
+
+
+STYLE_FACTORIES: dict[str, tuple[str, str]] = {
+    "static_1": ("mediacovergenerator.style.style_static_1", "create_style_static_1"),
+    "static_2": ("mediacovergenerator.style.style_static_2", "create_style_static_2"),
+    "static_3": ("mediacovergenerator.style.style_static_3", "create_style_static_3"),
+    "static_4": ("mediacovergenerator.style.style_static_4", "create_style_static_4"),
+    "animated_1": ("mediacovergenerator.style.style_animated_1", "create_style_animated_1"),
+    "animated_2": ("mediacovergenerator.style.style_animated_2", "create_style_animated_2"),
+    "animated_3": ("mediacovergenerator.style.style_animated_3", "create_style_animated_3"),
+    "animated_4": ("mediacovergenerator.style.style_animated_4", "create_style_animated_4"),
+}
 
 
 class PosterGenerator:
     def __init__(self, project_root: Path):
         self.project_root = project_root
         self._sanitize_log_cache: set[str] = set()
+        self._style_callables: dict[str, Callable[..., str]] = {}
 
     def sanitize_filename(self, value: str) -> str:
         if not value:
@@ -116,6 +124,8 @@ class PosterGenerator:
         font_paths: tuple[Path, Path],
         stop_event,
     ) -> str:
+        from mediacovergenerator.utils.network_helper import validate_font_file
+
         if not validate_font_file(font_paths[0]) or not validate_font_file(font_paths[1]):
             raise RuntimeError("Font validation failed")
 
@@ -143,7 +153,7 @@ class PosterGenerator:
         style = config.cover.style
         image_path = image_dir / "1.jpg"
         if style == "static_1":
-            return create_style_static_1(
+            return self._get_style_callable(style)(
                 str(image_path),
                 title_tuple,
                 font_path,
@@ -155,7 +165,7 @@ class PosterGenerator:
                 bg_color_config=bg_color_config,
             )
         if style == "static_2":
-            return create_style_static_2(
+            return self._get_style_callable(style)(
                 str(image_path),
                 title_tuple,
                 font_path,
@@ -167,7 +177,7 @@ class PosterGenerator:
                 bg_color_config=bg_color_config,
             )
         if style == "static_4":
-            return create_style_static_4(
+            return self._get_style_callable(style)(
                 str(image_path),
                 title_tuple,
                 font_path,
@@ -179,7 +189,7 @@ class PosterGenerator:
                 bg_color_config=bg_color_config,
             )
         if style == "static_3":
-            return create_style_static_3(
+            return self._get_style_callable(style)(
                 image_dir,
                 title_tuple,
                 font_path,
@@ -192,7 +202,7 @@ class PosterGenerator:
                 bg_color_config=bg_color_config,
             )
         if style == "animated_1":
-            return create_style_animated_1(
+            return self._get_style_callable(style)(
                 image_dir,
                 title_tuple,
                 font_path,
@@ -213,7 +223,7 @@ class PosterGenerator:
                 stop_event=stop_event,
             )
         if style == "animated_2":
-            return create_style_animated_2(
+            return self._get_style_callable(style)(
                 image_dir,
                 title_tuple,
                 font_path,
@@ -233,7 +243,7 @@ class PosterGenerator:
                 stop_event=stop_event,
             )
         if style == "animated_3":
-            return create_style_animated_3(
+            return self._get_style_callable(style)(
                 image_dir,
                 title_tuple,
                 font_path,
@@ -253,7 +263,7 @@ class PosterGenerator:
                 stop_event=stop_event,
             )
         if style == "animated_4":
-            return create_style_animated_4(
+            return self._get_style_callable(style)(
                 image_dir,
                 title_tuple,
                 font_path,
@@ -318,12 +328,24 @@ class PosterGenerator:
             old_file.unlink(missing_ok=True)
         return target
 
-    def _resolution_config(self, config: AppConfig) -> ResolutionConfig:
+    def _get_style_callable(self, style: str) -> Callable[..., str]:
+        cached = self._style_callables.get(style)
+        if cached is not None:
+            return cached
+        module_name, func_name = STYLE_FACTORIES[style]
+        module = import_module(module_name)
+        func = getattr(module, func_name)
+        self._style_callables[style] = func
+        return func
+
+    def _resolution_config(self, config: AppConfig) -> "ResolutionConfig":
+        from mediacovergenerator.utils.image_manager import ResolutionConfig
+
         if config.cover.resolution == "custom":
             return ResolutionConfig((config.cover.custom_width, config.cover.custom_height))
         return ResolutionConfig(config.cover.resolution)
 
-    def _font_sizes(self, config: AppConfig, resolution_config: ResolutionConfig) -> tuple[float, float]:
+    def _font_sizes(self, config: AppConfig, resolution_config: "ResolutionConfig") -> tuple[float, float]:
         title_scale = max(float(config.cover.title_scale or 1.0), 0.1)
         if config.cover.style.startswith("animated"):
             return (
@@ -334,4 +356,3 @@ class PosterGenerator:
             resolution_config.get_font_size(float(config.cover.zh_font_size)) * title_scale,
             resolution_config.get_font_size(float(config.cover.en_font_size)) * title_scale,
         )
-
