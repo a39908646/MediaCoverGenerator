@@ -2,12 +2,9 @@ from __future__ import annotations
 
 import argparse
 import os
-import sys
 from pathlib import Path
 
 import uvicorn
-
-from mediacovergenerator.runtime import run_once
 
 
 def main() -> None:
@@ -16,6 +13,8 @@ def main() -> None:
     args = parser.parse_args()
 
     if args.run_once:
+        from mediacovergenerator.runtime import run_once
+
         project_root = Path(__file__).resolve().parent.parent
         raise SystemExit(run_once(project_root))
 

@@ -59,7 +59,7 @@ class CoverSettings(BaseModel):
 
     style: CoverStyle = "static_1"
     sort_by: SortBy = "Random"
-    use_primary: bool = False
+    use_primary: bool = True
     resolution: str = "480p"
     custom_width: int = 1920
     custom_height: int = 1080

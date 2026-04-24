@@ -4,11 +4,14 @@ import threading
 import uuid
 from datetime import datetime
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 from mediacovergenerator.logging import logger
 from mediacovergenerator.models import JobSummary
-from mediacovergenerator.service import LibraryUpdateService
 from mediacovergenerator.storage import ConfigRepository, HistoryRepository
+
+if TYPE_CHECKING:
+    from mediacovergenerator.service import LibraryUpdateService
 
 
 class JobManager:
@@ -16,10 +19,17 @@ class JobManager:
         self.project_root = project_root
         self.config_repository = config_repository
         self.history_repository = history_repository
-        self.service = LibraryUpdateService(project_root, history_repository)
+        self._service: LibraryUpdateService | None = None
         self._jobs: dict[str, JobSummary] = {}
         self._cancel_events: dict[str, threading.Event] = {}
         self._lock = threading.Lock()
+
+    def _get_service(self) -> "LibraryUpdateService":
+        if self._service is None:
+            from mediacovergenerator.service import LibraryUpdateService
+
+            self._service = LibraryUpdateService(self.project_root, self.history_repository)
+        return self._service
 
     def list_jobs(self) -> list[JobSummary]:
         with self._lock:
@@ -81,8 +91,9 @@ class JobManager:
         cancel_event = self._cancel_events[job_id]
         self._update(job_id, status="running", started_at=datetime.utcnow(), message="Loading configuration")
         try:
+            service = self._get_service()
             config = self.config_repository.load()
-            all_libraries = self.service.list_libraries(config)
+            all_libraries = service.list_libraries(config)
             selected_ids = library_ids or ([] if not config.selected_library_ids else config.selected_library_ids)
             if selected_ids:
                 target_libraries = [library for library in all_libraries if library.id in selected_ids]
@@ -104,7 +115,7 @@ class JobManager:
                     return
                 self._update(job_id, message=f"Processing {library.name} ({index}/{len(target_libraries)})")
                 try:
-                    self.service.generate_for_library(config, library.id, cancel_event)
+                    service.generate_for_library(config, library.id, cancel_event)
                     current = self._snapshot(job_id)
                     self._update(job_id, completed_libraries=current.completed_libraries + 1)
                 except Exception as exc:
