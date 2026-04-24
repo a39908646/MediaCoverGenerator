@@ -1,0 +1,2022 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MediaCoverGenerator</title>
+  <link rel="icon" href="/assets/images/favicon.svg" type="image/svg+xml">
+  <style>
+    :root {
+      --bg: #f5efe3;
+      --panel: rgba(255, 251, 244, 0.86);
+      --line: rgba(88, 67, 37, 0.16);
+      --text: #2a241a;
+      --muted: #6d604d;
+      --brand: #a44a28;
+      --brand-dark: #6d2e17;
+      --ok: #2f6a4d;
+      --warn: #9a5b13;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at top left, rgba(164, 74, 40, 0.20), transparent 28%),
+        radial-gradient(circle at bottom right, rgba(47, 106, 77, 0.20), transparent 22%),
+        linear-gradient(160deg, #f7f1e7 0%, #efe4d1 100%);
+      min-height: 100vh;
+    }
+
+    .wrap {
+      max-width: 1180px;
+      margin: 0 auto;
+      padding: 32px 20px 48px;
+    }
+
+    h1 {
+      margin: 0 0 8px;
+      font-size: 40px;
+      letter-spacing: 0.02em;
+    }
+
+    p.lead {
+      margin: 0 0 28px;
+      color: var(--muted);
+      max-width: 760px;
+      line-height: 1.6;
+    }
+
+    .page-tabs {
+      margin-bottom: 18px;
+    }
+
+    .field-group {
+      display: grid;
+      grid-template-columns: minmax(140px, 0.8fr) minmax(0, 1.2fr);
+      gap: 10px;
+      align-items: start;
+    }
+
+    .field-group .hint {
+      grid-column: 1 / -1;
+      margin-top: -2px;
+    }
+
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 24px;
+      padding: 20px;
+      backdrop-filter: blur(10px);
+      box-shadow: 0 12px 40px rgba(90, 70, 42, 0.08);
+    }
+
+    .panel h2 {
+      margin: 0 0 16px;
+      font-size: 20px;
+    }
+
+    .fields {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .inline-action {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .inline-action button {
+      width: auto;
+      min-width: 112px;
+      padding: 12px 16px;
+    }
+
+    .full-span {
+      grid-column: 1 / -1;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text);
+      line-height: 1.4;
+    }
+
+    input,
+    select,
+    textarea,
+    button {
+      width: 100%;
+      border-radius: 14px;
+      border: 1px solid rgba(89, 65, 32, 0.18);
+      padding: 12px 14px;
+      font: inherit;
+      background: rgba(255, 255, 255, 0.74);
+      color: var(--text);
+    }
+
+    .custom-select {
+      position: relative;
+      width: 100%;
+    }
+
+    .custom-select > select {
+      display: none;
+    }
+
+    .custom-select-button {
+      width: 100%;
+      border-radius: 14px;
+      border: 1px solid rgba(89, 65, 32, 0.18);
+      padding: 12px 52px 12px 14px;
+      font: inherit;
+      background: rgba(255, 255, 255, 0.74);
+      color: var(--text);
+      text-align: left;
+      position: relative;
+      box-shadow: none;
+    }
+
+    .custom-select-button::after {
+      content: "";
+      position: absolute;
+      right: 18px;
+      top: 50%;
+      width: 14px;
+      height: 14px;
+      transform: translateY(-50%);
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 14 14'%3E%3Cpath d='M3 5.25L7 9.25L11 5.25' fill='none' stroke='%232a241a' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: center;
+      background-size: 14px 14px;
+      pointer-events: none;
+      transition: transform 0.18s ease;
+    }
+
+    .custom-select.open .custom-select-button::after {
+      transform: translateY(-50%) rotate(180deg);
+    }
+
+    .custom-select-button:disabled {
+      cursor: default;
+      opacity: 0.7;
+    }
+
+    .custom-select-menu {
+      position: absolute;
+      top: calc(100% + 8px);
+      left: 0;
+      right: 0;
+      z-index: 50;
+      display: none;
+      max-height: 280px;
+      overflow: auto;
+      padding: 6px;
+      border-radius: 16px;
+      border: 1px solid rgba(89, 65, 32, 0.14);
+      background: rgba(255, 251, 244, 0.98);
+      box-shadow: 0 18px 32px rgba(90, 70, 42, 0.18);
+      backdrop-filter: blur(10px);
+    }
+
+    .custom-select.open .custom-select-menu {
+      display: block;
+    }
+
+    .custom-select-option {
+      width: 100%;
+      padding: 10px 12px;
+      border: 0;
+      border-radius: 12px;
+      background: transparent;
+      color: var(--text);
+      text-align: left;
+      box-shadow: none;
+      font-weight: 500;
+    }
+
+    .custom-select-option:hover,
+    .custom-select-option.selected {
+      background: rgba(164, 74, 40, 0.12);
+      color: var(--brand-dark);
+    }
+
+    textarea {
+      min-height: 180px;
+      resize: vertical;
+    }
+
+    button {
+      cursor: pointer;
+      background: linear-gradient(135deg, var(--brand), var(--brand-dark));
+      color: #fff;
+      border: 0;
+      font-weight: 600;
+    }
+
+    button:disabled {
+      cursor: default;
+      opacity: 0.55;
+      box-shadow: none;
+    }
+
+    button.secondary {
+      background: rgba(255, 255, 255, 0.82);
+      color: var(--text);
+      border: 1px solid var(--line);
+    }
+
+    .actions {
+      display: flex;
+      gap: 10px;
+      margin-top: 14px;
+    }
+
+    .actions button {
+      flex: 1;
+    }
+
+    .toolbar {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 12px;
+    }
+
+    .toolbar button {
+      width: auto;
+      padding: 10px 14px;
+      min-width: 0;
+    }
+
+    .toolbar-meta {
+      margin-left: auto;
+      font-size: 13px;
+      color: var(--muted);
+      align-self: center;
+    }
+
+    .stack {
+      display: grid;
+      gap: 18px;
+      align-content: start;
+    }
+
+    .list {
+      display: grid;
+      gap: 10px;
+    }
+
+    .item {
+      border: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.72);
+      border-radius: 16px;
+      padding: 14px;
+    }
+
+    .meta {
+      font-size: 13px;
+      color: var(--muted);
+      margin-top: 6px;
+    }
+
+    .hint {
+      margin-top: 8px;
+      font-size: 12px;
+      font-weight: 400;
+      color: var(--muted);
+      line-height: 1.6;
+    }
+
+    .style-mode-toggle {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+
+    .toggle-chip {
+      padding: 12px 16px;
+      border-radius: 16px;
+      border: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.78);
+      color: var(--text);
+      font-weight: 600;
+    }
+
+    .toggle-chip.active {
+      background: linear-gradient(135deg, var(--brand), var(--brand-dark));
+      color: #fff;
+      border-color: transparent;
+    }
+
+    .style-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+
+    .style-card {
+      overflow: hidden;
+      padding: 0;
+      border-radius: 20px;
+      border: 1px solid rgba(89, 65, 32, 0.14);
+      background: rgba(255, 255, 255, 0.78);
+      color: inherit;
+      text-align: left;
+      box-shadow: 0 10px 24px rgba(90, 70, 42, 0.05);
+      transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+    }
+
+    .style-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 14px 28px rgba(90, 70, 42, 0.10);
+    }
+
+    .style-card.active {
+      border-color: rgba(164, 74, 40, 0.5);
+      box-shadow: 0 18px 34px rgba(109, 46, 23, 0.16);
+    }
+
+    .style-card img {
+      display: block;
+      width: 100%;
+      aspect-ratio: 16 / 9;
+      object-fit: cover;
+      border-bottom: 1px solid rgba(89, 65, 32, 0.12);
+      background: rgba(255, 255, 255, 0.7);
+    }
+
+    .style-card-body {
+      padding: 12px 12px 14px;
+    }
+
+    .style-card-title {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 6px;
+      font-size: 15px;
+      font-weight: 700;
+      line-height: 1.4;
+    }
+
+    .style-card-note {
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.5;
+      min-height: 2.9em;
+    }
+
+    .style-settings-grid {
+      display: grid;
+      gap: 14px;
+    }
+
+    .style-group {
+      padding: 16px;
+      border: 1px solid rgba(89, 65, 32, 0.10);
+      border-radius: 18px;
+      background: rgba(255, 255, 255, 0.62);
+    }
+
+    .style-group h3 {
+      margin: 0 0 14px;
+      font-size: 17px;
+    }
+
+    .style-group .fields {
+      gap: 12px;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    .badge {
+      display: inline-block;
+      margin-left: 8px;
+      padding: 3px 8px;
+      border-radius: 999px;
+      font-size: 12px;
+      background: rgba(164, 74, 40, 0.12);
+      color: var(--brand-dark);
+    }
+
+    .status-banner {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-top: 12px;
+      margin-bottom: 16px;
+      padding: 12px 14px;
+      border-radius: 16px;
+      background: rgba(255, 255, 255, 0.68);
+      border: 1px solid rgba(89, 65, 32, 0.10);
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    .status-dot {
+      flex: 0 0 auto;
+      width: 10px;
+      height: 10px;
+      border-radius: 999px;
+      background: var(--muted);
+    }
+
+    .status-banner.ok .status-dot {
+      background: var(--ok);
+      box-shadow: 0 0 0 6px rgba(47, 106, 77, 0.10);
+    }
+
+    .status-banner.warn .status-dot {
+      background: var(--warn);
+      box-shadow: 0 0 0 6px rgba(154, 91, 19, 0.10);
+    }
+
+    .item-head {
+      display: flex;
+      gap: 8px;
+      justify-content: space-between;
+      align-items: flex-start;
+    }
+
+    .item-head-main {
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+      min-width: 0;
+      flex: 1;
+    }
+
+    .item-select {
+      display: inline-flex;
+      align-items: center;
+      margin-top: 2px;
+      flex: 0 0 auto;
+    }
+
+    .item-select input {
+      width: 18px;
+      height: 18px;
+      margin: 0;
+      padding: 0;
+      border-radius: 6px;
+    }
+
+    .item-title {
+      font-size: 18px;
+      font-weight: 700;
+      line-height: 1.4;
+    }
+
+    .mini-actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-top: 10px;
+    }
+
+    .mini-actions button,
+    .mini-actions a {
+      width: auto;
+      min-width: 0;
+      padding: 8px 12px;
+      border-radius: 12px;
+      font: inherit;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .mini-actions a {
+      background: rgba(255, 255, 255, 0.82);
+      color: var(--text);
+      border: 1px solid var(--line);
+    }
+
+    .job-id {
+      font-family: Consolas, monospace;
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .library-actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-bottom: 12px;
+    }
+
+    .library-actions button {
+      width: auto;
+      min-width: 0;
+      padding: 8px 12px;
+      border-radius: 12px;
+    }
+
+    .library-summary {
+      margin-bottom: 12px;
+      font-size: 14px;
+      color: var(--muted);
+      line-height: 1.5;
+    }
+
+    .tabs {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-bottom: 14px;
+    }
+
+    .tab-button {
+      width: auto;
+      min-width: 0;
+      padding: 10px 14px;
+      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.82);
+      color: var(--text);
+      border: 1px solid var(--line);
+    }
+
+    .tab-button.active {
+      background: linear-gradient(135deg, var(--brand), var(--brand-dark));
+      color: #fff;
+      border-color: transparent;
+    }
+
+    .tab-panel {
+      display: none;
+    }
+
+    .tab-panel.active {
+      display: block;
+    }
+
+    .section-toggle {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 0;
+      border: 0;
+      background: transparent;
+      color: inherit;
+      text-align: left;
+      cursor: pointer;
+    }
+
+    .section-toggle h2 {
+      margin: 0;
+    }
+
+    .section-caret {
+      flex: 0 0 auto;
+      color: var(--muted);
+      font-size: 14px;
+      transition: transform 0.18s ease;
+    }
+
+    .section-collapsible {
+      display: none;
+      margin-top: 12px;
+    }
+
+    .section-collapsible.open {
+      display: block;
+    }
+
+    .section-toggle.open .section-caret {
+      transform: rotate(180deg);
+    }
+
+    .library-config-list {
+      display: grid;
+      gap: 12px;
+    }
+
+    .library-config-row {
+      padding: 14px;
+      border: 1px solid rgba(89, 65, 32, 0.10);
+      border-radius: 18px;
+      background: rgba(255, 255, 255, 0.72);
+    }
+
+    .library-config-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
+    .library-config-toggle {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-width: 0;
+      flex: 1;
+      font-size: 15px;
+      color: var(--text);
+    }
+
+    .library-config-toggle input {
+      width: auto;
+      padding: 0;
+      flex: 0 0 auto;
+    }
+
+    .library-config-name {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .library-config-fields {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+      gap: 10px;
+    }
+
+    .library-config-fields label {
+      margin-bottom: 0;
+    }
+
+    .library-config-fields input {
+      margin-top: 6px;
+    }
+
+    .status-ok {
+      color: var(--ok);
+    }
+
+    .status-warn {
+      color: var(--warn);
+    }
+
+    .floating-actions {
+      position: fixed;
+      right: 24px;
+      bottom: 24px;
+      z-index: 30;
+      display: grid;
+      gap: 10px;
+      justify-items: end;
+    }
+
+    .floating-actions button {
+      width: auto;
+      min-width: 220px;
+      padding: 14px 20px;
+      border-radius: 18px;
+      box-shadow: 0 16px 30px rgba(109, 46, 23, 0.18);
+    }
+
+    .floating-save {
+      background: rgba(255, 251, 244, 0.96);
+      color: var(--text);
+      border: 1px solid rgba(89, 65, 32, 0.14);
+    }
+
+    .floating-save.dirty {
+      background: linear-gradient(135deg, #c66b3a, var(--brand));
+      color: #fff;
+      border-color: transparent;
+      box-shadow: 0 16px 30px rgba(164, 74, 40, 0.24);
+    }
+
+    .floating-generate {
+      width: auto;
+      box-shadow: 0 16px 30px rgba(109, 46, 23, 0.26);
+    }
+
+    .action-notice {
+      position: fixed;
+      right: 24px;
+      bottom: 152px;
+      z-index: 31;
+      min-width: 280px;
+      max-width: min(420px, calc(100vw - 40px));
+      padding: 12px 14px;
+      border-radius: 16px;
+      border: 1px solid rgba(89, 65, 32, 0.12);
+      background: rgba(255, 251, 244, 0.96);
+      color: var(--text);
+      box-shadow: 0 14px 28px rgba(90, 70, 42, 0.14);
+      line-height: 1.5;
+      opacity: 0;
+      pointer-events: none;
+      transform: translateY(8px);
+      transition: opacity 0.18s ease, transform 0.18s ease;
+    }
+
+    .action-notice.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .action-notice.ok {
+      border-color: rgba(47, 106, 77, 0.18);
+    }
+
+    .action-notice.warn {
+      border-color: rgba(154, 91, 19, 0.22);
+    }
+
+    @media (max-width: 900px) {
+      .fields {
+        grid-template-columns: 1fr;
+      }
+
+      .style-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .library-config-fields {
+        grid-template-columns: 1fr;
+      }
+
+      .field-group {
+        grid-template-columns: 1fr;
+      }
+
+      .inline-action {
+        grid-template-columns: 1fr;
+      }
+
+      .floating-actions {
+        left: 20px;
+        right: 20px;
+        bottom: 16px;
+        justify-items: stretch;
+      }
+
+      .floating-actions button {
+        min-width: 0;
+      }
+
+      .action-notice {
+        left: 20px;
+        right: 20px;
+        bottom: 140px;
+        min-width: 0;
+        max-width: none;
+      }
+    }
+
+    @media (max-width: 560px) {
+      .style-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="wrap">
+    <h1>MediaCoverGenerator</h1>
+    <p class="lead">Emby媒体库封面生成</p>
+    <div class="tabs page-tabs">
+      <button class="tab-button active" id="tabSettings" type="button">设置</button>
+      <button class="tab-button" id="tabJobs" type="button">任务管理</button>
+      <button class="tab-button" id="tabHistory" type="button">历史管理</button>
+    </div>
+
+    <div id="panelSettings" class="tab-panel active">
+      <div class="stack">
+        <section class="panel">
+          <button class="section-toggle" id="basicSectionToggle" type="button">
+            <h2>基础设置</h2>
+            <span class="section-caret">▾</span>
+          </button>
+          <div id="healthBanner" class="status-banner">
+            <span class="status-dot"></span>
+            <div>正在检查 Emby 连接状态...</div>
+          </div>
+          <div id="basicSectionBody" class="section-collapsible">
+            <div class="fields">
+              <div>
+                <label for="baseUrl">Emby 服务地址</label>
+                <input id="baseUrl" placeholder="http://127.0.0.1:8096">
+                <div class="hint">填写 Emby 服务地址，例如 `http://127.0.0.1:8096`。</div>
+              </div>
+              <div>
+                <label for="apiKey">Emby API Key</label>
+                <input id="apiKey" placeholder="api key">
+                <div class="hint">用于读取媒体库和回写封面。</div>
+              </div>
+              <div>
+                <label for="sortBy">封面来源</label>
+                <select id="sortBy">
+                  <option value="Random">随机</option>
+                  <option value="DateCreated">最新入库</option>
+                  <option value="PremiereDate">最新发行</option>
+                </select>
+                <div id="sortHint" class="hint"></div>
+              </div>
+              <div class="full-span">
+                <div class="field-group">
+                  <div>
+                    <label for="scheduleEnabled">定时更新</label>
+                    <select id="scheduleEnabled">
+                      <option value="false">关闭</option>
+                      <option value="true">开启</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label for="scheduleCron">Cron 表达式</label>
+                    <input id="scheduleCron" placeholder="0 3 * * *">
+                  </div>
+                  <div class="hint">开启后服务常驻运行，并按 cron 表达式自动更新封面，例如 `0 3 * * *` 表示每天凌晨 3 点执行一次。</div>
+                </div>
+              </div>
+              <div class="full-span">
+                <div class="field-group">
+                  <div>
+                    <label for="webhookEnabled">入库监控</label>
+                    <select id="webhookEnabled">
+                      <option value="false">关闭</option>
+                      <option value="true">开启</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label for="webhookDelay">入库延迟（秒）</label>
+                    <input id="webhookDelay" type="number" min="0" step="1" placeholder="60">
+                  </div>
+                  <div class="hint">媒体入库后自动刷新对应媒体库封面。延迟用于等待 Emby 完成扫描、刮削和图片生成，建议先从 `60` 秒开始。</div>
+                </div>
+              </div>
+              <div class="full-span">
+                <label for="webhookUrlDisplay">Webhook 地址</label>
+                <div class="inline-action">
+                  <input id="webhookUrlDisplay" readonly>
+                  <button class="secondary" id="copyWebhookUrl" type="button">复制地址</button>
+                </div>
+                <div class="hint">把这个完整地址直接填到 Emby Webhook 插件里。</div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="panel">
+          <button class="section-toggle" id="librarySectionToggle" type="button">
+            <h2>媒体库</h2>
+            <span class="section-caret">▾</span>
+          </button>
+          <div id="librarySummary" class="library-summary">默认更新全部，或只更新勾选的媒体库。</div>
+          <div id="librarySectionBody" class="section-collapsible">
+            <div class="library-actions">
+              <button class="secondary" id="loadLibraries" type="button">刷新媒体库</button>
+              <button class="secondary" id="selectAllLibraries" type="button">全选</button>
+              <button class="secondary" id="clearAllLibraries" type="button">清空</button>
+            </div>
+            <div id="libraries" class="library-config-list"></div>
+          </div>
+        </section>
+
+        <section class="panel">
+          <h2>封面风格</h2>
+          <input id="style" type="hidden">
+          <div class="style-mode-toggle">
+            <button class="toggle-chip active" id="styleVariantStatic" data-variant="static" type="button">静态</button>
+            <button class="toggle-chip" id="styleVariantAnimated" data-variant="animated" type="button">动态</button>
+          </div>
+          <div id="styleGrid" class="style-grid"></div>
+          <div class="style-settings-grid">
+            <section class="style-group">
+              <h3>基本参数</h3>
+              <div class="fields">
+                <div>
+                  <label for="usePrimary">选图优先来源</label>
+                  <select id="usePrimary">
+                    <option value="false">背景图优先</option>
+                    <option value="true">海报图优先</option>
+                  </select>
+                </div>
+                <div>
+                  <label for="resolution">静态分辨率</label>
+                  <select id="resolution">
+                    <option value="1080p">1080p (1920x1080)</option>
+                    <option value="720p">720p (1280x720)</option>
+                    <option value="480p">480p (854x480)</option>
+                    <option value="custom">自定义</option>
+                  </select>
+                </div>
+                <div id="customWidthField" class="hidden">
+                  <label for="customWidth">自定义宽度</label>
+                  <input id="customWidth" type="number" min="1" step="1" placeholder="1920">
+                </div>
+                <div id="customHeightField" class="hidden">
+                  <label for="customHeight">自定义高度</label>
+                  <input id="customHeight" type="number" min="1" step="1" placeholder="1080">
+                </div>
+                <div>
+                  <label for="multiBlur">九宫格背景</label>
+                  <select id="multiBlur">
+                    <option value="true">模糊背景</option>
+                    <option value="false">纯色渐变</option>
+                  </select>
+                  <div class="hint">主要影响静态 3 和多数动图风格。</div>
+                </div>
+                <div>
+                  <label for="blurSize">背景模糊强度</label>
+                  <input id="blurSize" type="number" min="0" step="1" placeholder="50">
+                </div>
+                <div>
+                  <label for="colorRatio">背景颜色混合占比</label>
+                  <input id="colorRatio" type="number" min="0" max="1" step="0.05" placeholder="0.8">
+                </div>
+              </div>
+            </section>
+            <section class="style-group">
+              <h3>标题与字体</h3>
+              <div class="fields">
+                <div>
+                  <label for="zhFontPreset">主标题字体预设</label>
+                  <select id="zhFontPreset">
+                    <option value="chaohei">chaohei</option>
+                    <option value="yasong">yasong</option>
+                  </select>
+                </div>
+                <div>
+                  <label for="enFontPreset">副标题字体预设</label>
+                  <select id="enFontPreset">
+                    <option value="EmblemaOne">EmblemaOne</option>
+                    <option value="Melete">Melete</option>
+                    <option value="Phosphate">Phosphate</option>
+                    <option value="JosefinSans">JosefinSans</option>
+                    <option value="LilitaOne">LilitaOne</option>
+                  </select>
+                </div>
+                <div>
+                  <label for="zhFontCustom">自定义主标题字体</label>
+                  <input id="zhFontCustom" placeholder="字体文件路径或 URL，留空使用预设">
+                </div>
+                <div>
+                  <label for="enFontCustom">自定义副标题字体</label>
+                  <input id="enFontCustom" placeholder="字体文件路径或 URL，留空使用预设">
+                </div>
+                <div>
+                  <label for="zhFontSize">主标题字号</label>
+                  <input id="zhFontSize" type="number" min="1" step="1" placeholder="170">
+                </div>
+                <div>
+                  <label for="enFontSize">副标题字号</label>
+                  <input id="enFontSize" type="number" min="1" step="1" placeholder="75">
+                </div>
+                <div>
+                  <label for="titleScale">标题整体缩放</label>
+                  <input id="titleScale" type="number" min="0.1" step="0.05" placeholder="1.0">
+                </div>
+                <div>
+                  <label for="zhFontOffset">主标题偏移量</label>
+                  <input id="zhFontOffset" type="number" step="1" placeholder="0">
+                </div>
+                <div>
+                  <label for="titleSpacing">主副标题间距</label>
+                  <input id="titleSpacing" type="number" step="1" placeholder="40">
+                </div>
+                <div>
+                  <label for="enLineSpacing">副标题行间距</label>
+                  <input id="enLineSpacing" type="number" step="1" placeholder="40">
+                </div>
+              </div>
+            </section>
+            <section id="animatedSettingsGroup" class="style-group">
+              <h3>动态图参数</h3>
+              <div class="fields">
+                <div>
+                  <label for="animationDuration">动画循环周期（秒）</label>
+                  <input id="animationDuration" type="number" min="1" step="1" placeholder="8">
+                </div>
+                <div>
+                  <label for="animationFps">帧率（FPS）</label>
+                  <input id="animationFps" type="number" min="1" step="1" placeholder="24">
+                </div>
+                <div>
+                  <label for="animationFormat">输出格式</label>
+                  <select id="animationFormat">
+                    <option value="apng">APNG</option>
+                    <option value="gif">GIF</option>
+                    <option value="webp">WebP（推荐）</option>
+                  </select>
+                </div>
+                <div>
+                  <label for="animationResolution">动图分辨率</label>
+                  <select id="animationResolution">
+                    <option value="320x180">320x180</option>
+                    <option value="400x225">400x225（推荐）</option>
+                    <option value="480x270">480x270</option>
+                    <option value="640x360">640x360</option>
+                  </select>
+                </div>
+                <div>
+                  <label for="animationReduceColors">颜色压缩等级</label>
+                  <select id="animationReduceColors">
+                    <option value="off">关闭</option>
+                    <option value="medium">中等压缩（推荐）</option>
+                    <option value="high">强压缩</option>
+                  </select>
+                </div>
+                <div id="animatedImageCountField">
+                  <label for="animatedImageCount">图片数量</label>
+                  <input id="animatedImageCount" type="number" min="3" max="9" step="1" placeholder="6">
+                </div>
+                <div id="animatedDepartureTypeField">
+                  <label for="animatedDepartureType">动图 1 离场方式</label>
+                  <select id="animatedDepartureType">
+                    <option value="fly">飞出</option>
+                    <option value="fade">淡出</option>
+                    <option value="crossfade">交叉淡化</option>
+                  </select>
+                </div>
+                <div id="animationScrollField">
+                  <label for="animationScroll">动图 3 滚动方式</label>
+                  <select id="animationScroll">
+                    <option value="alternate">往返</option>
+                    <option value="alternate_reverse">反向往返</option>
+                    <option value="down">向下</option>
+                    <option value="up">向上</option>
+                  </select>
+                </div>
+              </div>
+            </section>
+            <section class="style-group">
+              <h3>输出与留档</h3>
+              <div class="fields">
+                <div>
+                  <label for="saveRecentCovers">保存最近封面</label>
+                  <select id="saveRecentCovers">
+                    <option value="true">开启</option>
+                    <option value="false">关闭</option>
+                  </select>
+                </div>
+                <div>
+                  <label for="coversHistoryLimit">每个媒体库保留数量</label>
+                  <input id="coversHistoryLimit" type="number" min="1" step="1" placeholder="10">
+                </div>
+              </div>
+            </section>
+          </div>
+        </section>
+      </div>
+    </div>
+
+    <div id="panelJobs" class="tab-panel">
+      <section class="panel">
+        <div id="jobsBanner" class="status-banner hidden">
+          <span class="status-dot"></span>
+          <div></div>
+        </div>
+        <div class="toolbar">
+          <button class="secondary" id="selectFinishedJobs" type="button">全选已结束</button>
+          <button class="secondary" id="deleteSelectedJobs" type="button">删除选中</button>
+          <div class="toolbar-meta" id="jobsSelectionMeta"></div>
+        </div>
+        <div id="jobs" class="list"></div>
+      </section>
+    </div>
+
+    <div id="panelHistory" class="tab-panel">
+      <section class="panel">
+        <div class="toolbar">
+          <button class="secondary" id="selectAllHistory" type="button">全选</button>
+          <button class="secondary" id="deleteSelectedHistory" type="button">删除选中</button>
+          <button class="secondary" id="refreshHistory" type="button">刷新历史</button>
+          <button class="secondary" id="clearHistory" type="button">清空历史</button>
+          <div class="toolbar-meta" id="historySelectionMeta"></div>
+        </div>
+        <div id="history" class="list"></div>
+      </section>
+    </div>
+
+    <div id="actionNotice" class="action-notice"></div>
+    <div class="floating-actions">
+      <button id="saveConfig" class="floating-save" type="button">已保存</button>
+      <button id="generateAll" class="floating-generate" type="button">生成封面</button>
+    </div>
+  </div>
+  <script>
+    const state = {
+      config: null,
+      selectedLibraryIds: [],
+      librarySelectionInitialized: false,
+      libraries: [],
+      jobs: [],
+      historyItems: [],
+      selectedJobIds: [],
+      selectedHistoryIds: [],
+      basicSectionOpen: false,
+      librarySectionOpen: false,
+      activeTab: "settings",
+      dirty: false,
+      generating: false
+    };
+    let noticeTimer = null;
+    const STYLE_META = {
+      static_1: {
+        variant: "static",
+        index: 1,
+        title: "静态 1",
+        image: "/assets/images/style_1.jpeg",
+        description: "单张海报配柔和背景和标题，最稳，适合大多数电影库和剧集库。",
+        hint: "单图风格。会选 1 张素材做封面，整体最保守。"
+      },
+      static_2: {
+        variant: "static",
+        index: 2,
+        title: "静态 2",
+        image: "/assets/images/style_2.jpeg",
+        description: "单张海报为主，但版式更偏设计感，画面切割更明显。",
+        hint: "单图风格。比静态 1 更强调版式和线条。"
+      },
+      static_3: {
+        variant: "static",
+        index: 3,
+        title: "静态 3",
+        image: "/assets/images/style_3.jpeg",
+        description: "九宫格拼贴，更能体现一个媒体库的内容密度，适合混合内容库。",
+        hint: "多图风格。会尽量准备 9 张图，不够会自动补齐。"
+      },
+      static_4: {
+        variant: "static",
+        index: 4,
+        title: "静态 4",
+        image: "/assets/images/style_4.jpeg",
+        description: "单张海报配更强的标题视觉，适合想突出库名而不是素材细节。",
+        hint: "单图风格。标题感最强，风格更海报化。"
+      },
+      animated_1: {
+        variant: "animated",
+        index: 1,
+        title: "动图 1",
+        image: "/assets/images/style_1.jpeg",
+        description: "卡片式拼贴动效，画面更活，但生成时间和资源占用都更高。",
+        hint: "动图风格。需要多张素材，适合展示型媒体库。"
+      },
+      animated_2: {
+        variant: "animated",
+        index: 2,
+        title: "动图 2",
+        image: "/assets/images/style_2.jpeg",
+        description: "拼贴块位移和离场动效，整体比动图 1 更偏节奏感。",
+        hint: "动图风格。素材数量可配置，默认比九宫格要求低。"
+      },
+      animated_3: {
+        variant: "animated",
+        index: 3,
+        title: "动图 3",
+        image: "/assets/images/style_3.jpeg",
+        description: "九宫格滚动动图，最能展示“这个库最近都有什么”。",
+        hint: "动图风格。通常要准备 9 张图，生成耗时相对更高。"
+      },
+      animated_4: {
+        variant: "animated",
+        index: 4,
+        title: "动图 4",
+        image: "/assets/images/style_4.jpeg",
+        description: "强标题感的动图版本，适合想保留标题冲击力又希望封面会动。",
+        hint: "动图风格。视觉重点仍然在标题和主体海报。"
+      }
+    };
+
+    const STYLE_CARD_META = {
+      1: { image: "/assets/images/style_1.jpeg", title: "风格 1", note: "最稳，适合大多数库。" },
+      2: { image: "/assets/images/style_2.jpeg", title: "风格 2", note: "版式更强，画面更利落。" },
+      3: { image: "/assets/images/style_3.jpeg", title: "风格 3", note: "九宫格，更强调内容密度。" },
+      4: { image: "/assets/images/style_4.jpeg", title: "风格 4", note: "标题感最强，适合展示库名。" }
+    };
+
+    const SORT_META = {
+      Random: "随机从媒体库中挑选可用素材。",
+      PremiereDate: "按媒体的上映 / 首播时间倒序取素材。",
+      DateCreated: "按进入 Emby 媒体库的时间倒序取素材，更接近“最近入库”。"
+    };
+
+    async function api(path, options = {}) {
+      const response = await fetch(path, {
+        headers: { "Content-Type": "application/json" },
+        ...options,
+      });
+      if (!response.ok) {
+        const type = response.headers.get("content-type") || "";
+        if (type.includes("application/json")) {
+          const payload = await response.json().catch(() => null);
+          const detail = payload?.detail || payload?.message || payload?.error || JSON.stringify(payload || {});
+          throw new Error(detail || response.statusText);
+        }
+        const detail = await response.text();
+        throw new Error(detail || response.statusText);
+      }
+      const type = response.headers.get("content-type") || "";
+      return type.includes("application/json") ? response.json() : response.text();
+    }
+
+    function composeStyle(variant, index) {
+      const safeVariant = variant === "animated" ? "animated" : "static";
+      const safeIndex = Math.min(4, Math.max(1, Number(index) || 1));
+      return `${safeVariant}_${safeIndex}`;
+    }
+
+    function parseStyle(style) {
+      const safeStyle = STYLE_META[style] ? style : "static_1";
+      const meta = STYLE_META[safeStyle];
+      return { variant: meta.variant, index: meta.index, style: safeStyle };
+    }
+
+    function setStyleChoice(variant, index) {
+      const nextStyle = composeStyle(variant, index);
+      const currentStyle = document.getElementById("style").value;
+      document.getElementById("style").value = nextStyle;
+      if (nextStyle !== currentStyle) {
+        setDirty(true);
+      }
+      renderStyleSelector();
+    }
+
+    function renderStyleSelector() {
+      const { variant, index, style } = parseStyle(document.getElementById("style").value);
+      document.getElementById("styleVariantStatic").classList.toggle("active", variant === "static");
+      document.getElementById("styleVariantAnimated").classList.toggle("active", variant === "animated");
+      document.getElementById("styleGrid").innerHTML = [1, 2, 3, 4].map((styleIndex) => {
+        const item = STYLE_CARD_META[styleIndex];
+        const active = styleIndex === index ? "active" : "";
+        return `
+          <button class="style-card ${active}" data-style-index="${styleIndex}" type="button">
+            <img src="${item.image}" alt="${item.title}">
+            <div class="style-card-body">
+              <div class="style-card-title">
+                <span>${item.title}</span>
+                ${styleIndex === index ? `<span class="badge">${variant === "static" ? "静态" : "动态"}</span>` : ""}
+              </div>
+              <div class="style-card-note">${item.note}</div>
+            </div>
+          </button>
+        `;
+      }).join("");
+      document.querySelectorAll("[data-style-index]").forEach((button) => {
+        button.addEventListener("click", () => {
+          setStyleChoice(variant, button.dataset.styleIndex);
+        });
+      });
+      renderStyleFieldVisibility();
+    }
+
+    function renderStyleFieldVisibility() {
+      const { variant, index } = parseStyle(document.getElementById("style").value);
+      const customResolution = document.getElementById("resolution").value === "custom";
+      document.getElementById("customWidthField").classList.toggle("hidden", !customResolution);
+      document.getElementById("customHeightField").classList.toggle("hidden", !customResolution);
+      document.getElementById("animatedSettingsGroup").classList.toggle("hidden", variant !== "animated");
+      document.getElementById("animatedImageCountField").classList.toggle("hidden", ![1, 2, 4].includes(index));
+      document.getElementById("animatedDepartureTypeField").classList.toggle("hidden", index !== 1);
+      document.getElementById("animationScrollField").classList.toggle("hidden", index !== 3);
+    }
+
+    function normalizeAnimationReduceColors(value) {
+      if (value === "low") return "medium";
+      if (value === "strong") return "high";
+      return ["off", "medium", "high"].includes(value) ? value : "medium";
+    }
+
+    function renderSortMeta() {
+      const sortBy = document.getElementById("sortBy").value;
+      document.getElementById("sortHint").textContent = SORT_META[sortBy] || "";
+    }
+
+    function renderWebhookUrl() {
+      const url = new URL("/webhooks/emby", window.location.origin);
+      document.getElementById("webhookUrlDisplay").value = url.toString();
+    }
+
+    async function copyWebhookUrl() {
+      const value = document.getElementById("webhookUrlDisplay").value;
+      try {
+        if (navigator.clipboard?.writeText) {
+          await navigator.clipboard.writeText(value);
+        } else {
+          const input = document.getElementById("webhookUrlDisplay");
+          input.focus();
+          input.select();
+          document.execCommand("copy");
+        }
+        showNotice("Webhook 地址已复制");
+      } catch (error) {
+        showNotice("复制失败，请手动复制地址", "warn", 4200);
+      }
+    }
+
+    function updateLibrarySummary(totalLibraries = state.libraries.length) {
+      if (!totalLibraries) {
+        document.getElementById("librarySummary").textContent = "请先读取媒体库。";
+        return;
+      }
+
+      const selectedCount = state.selectedLibraryIds.length;
+      if (selectedCount === 0) {
+        document.getElementById("librarySummary").textContent = `当前未勾选，保存后将按全部 ${totalLibraries} 个媒体库处理。`;
+      } else if (selectedCount === totalLibraries) {
+        document.getElementById("librarySummary").textContent = `当前默认更新全部 ${totalLibraries} 个媒体库。`;
+      } else {
+        document.getElementById("librarySummary").textContent = `当前已选 ${selectedCount} / ${totalLibraries} 个媒体库。`;
+      }
+    }
+
+    function renderLibrarySection() {
+      document.getElementById("librarySectionToggle").classList.toggle("open", state.librarySectionOpen);
+      document.getElementById("librarySectionBody").classList.toggle("open", state.librarySectionOpen);
+    }
+
+    function renderBasicSection() {
+      document.getElementById("basicSectionToggle").classList.toggle("open", state.basicSectionOpen);
+      document.getElementById("basicSectionBody").classList.toggle("open", state.basicSectionOpen);
+    }
+
+    function renderTabs() {
+      document.getElementById("tabSettings").classList.toggle("active", state.activeTab === "settings");
+      document.getElementById("tabJobs").classList.toggle("active", state.activeTab === "jobs");
+      document.getElementById("tabHistory").classList.toggle("active", state.activeTab === "history");
+      document.getElementById("panelSettings").classList.toggle("active", state.activeTab === "settings");
+      document.getElementById("panelJobs").classList.toggle("active", state.activeTab === "jobs");
+      document.getElementById("panelHistory").classList.toggle("active", state.activeTab === "history");
+      document.querySelector(".floating-actions").style.display = state.activeTab === "settings" ? "" : "none";
+    }
+
+    function setDirty(value) {
+      state.dirty = value;
+      renderSaveState();
+    }
+
+    function renderSaveState() {
+      const button = document.getElementById("saveConfig");
+      button.disabled = !state.dirty;
+      button.textContent = state.dirty ? "保存设置" : "已保存";
+      button.classList.toggle("dirty", state.dirty);
+    }
+
+    function renderGenerateState() {
+      const button = document.getElementById("generateAll");
+      button.disabled = state.generating;
+      button.textContent = state.generating ? "正在创建任务..." : "生成封面";
+    }
+
+    function showNotice(message, type = "ok", duration = 3200) {
+      const notice = document.getElementById("actionNotice");
+      if (noticeTimer) {
+        clearTimeout(noticeTimer);
+      }
+      notice.textContent = message;
+      notice.className = `action-notice ${type} show`;
+      noticeTimer = window.setTimeout(() => {
+        notice.className = "action-notice";
+        noticeTimer = null;
+      }, duration);
+    }
+
+    function showJobsBanner(message, type = "ok") {
+      const banner = document.getElementById("jobsBanner");
+      banner.className = `status-banner ${type}`;
+      banner.querySelector("div").textContent = message;
+    }
+
+    function closeCustomSelects(except = null) {
+      document.querySelectorAll(".custom-select.open").forEach((element) => {
+        if (element !== except) {
+          element.classList.remove("open");
+        }
+      });
+    }
+
+    function syncCustomSelect(select) {
+      const button = select.parentElement?.querySelector(".custom-select-button");
+      if (!button) return;
+      const selected = select.options[select.selectedIndex];
+      button.querySelector(".custom-select-label").textContent = selected ? selected.textContent : "";
+      button.disabled = select.disabled;
+      select.parentElement.querySelectorAll(".custom-select-option").forEach((optionButton) => {
+        optionButton.classList.toggle("selected", optionButton.dataset.value === select.value);
+      });
+    }
+
+    function buildCustomSelect(select) {
+      if (select.dataset.customized === "true") {
+        syncCustomSelect(select);
+        return;
+      }
+
+      const wrapper = document.createElement("div");
+      wrapper.className = "custom-select";
+      select.parentNode.insertBefore(wrapper, select);
+      wrapper.appendChild(select);
+
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "custom-select-button";
+      button.innerHTML = '<span class="custom-select-label"></span>';
+
+      const menu = document.createElement("div");
+      menu.className = "custom-select-menu";
+
+      Array.from(select.options).forEach((option) => {
+        const optionButton = document.createElement("button");
+        optionButton.type = "button";
+        optionButton.className = "custom-select-option";
+        optionButton.textContent = option.textContent;
+        optionButton.dataset.value = option.value;
+        optionButton.disabled = option.disabled;
+        optionButton.addEventListener("click", () => {
+          if (select.value !== option.value) {
+            select.value = option.value;
+            select.dispatchEvent(new Event("input", { bubbles: true }));
+            select.dispatchEvent(new Event("change", { bubbles: true }));
+          }
+          syncCustomSelect(select);
+          wrapper.classList.remove("open");
+        });
+        menu.appendChild(optionButton);
+      });
+
+      button.addEventListener("click", () => {
+        if (button.disabled) return;
+        const nextOpen = !wrapper.classList.contains("open");
+        closeCustomSelects(nextOpen ? wrapper : null);
+        wrapper.classList.toggle("open", nextOpen);
+      });
+
+      wrapper.appendChild(button);
+      wrapper.appendChild(menu);
+      select.dataset.customized = "true";
+      syncCustomSelect(select);
+    }
+
+    function initCustomSelects() {
+      document.querySelectorAll("select").forEach(buildCustomSelect);
+    }
+
+    function summarizeLibraryNames(names) {
+      if (!names || names.length === 0) return "未命名任务";
+      if (names.length === 1) return names[0];
+      if (names.length === 2) return `${names[0]}、${names[1]}`;
+      return `${names[0]}、${names[1]} 等 ${names.length} 个媒体库`;
+    }
+
+    function normalizeLibraryType(value) {
+      return {
+        tvshows: "剧集",
+        movies: "电影",
+        music: "音乐",
+        boxsets: "合集",
+        playlists: "播放列表",
+        library: "媒体库",
+        "": "媒体库",
+      }[value || ""] || value;
+    }
+
+    function getLibraryTitleConfig(library) {
+      const entries = state.config?.library_titles || [];
+      return entries.find((entry) => entry.library_id === library.id)
+        || entries.find((entry) => entry.library_name === library.name)
+        || { library_id: library.id, library_name: library.name, zh_title: library.name, en_title: "", bg_color: "" };
+    }
+
+    function renderLibraryRows() {
+      document.getElementById("libraries").innerHTML = state.libraries.map(libraryOption).join("") || '<div class="item">没有媒体库</div>';
+      document.querySelectorAll("[data-library-id]").forEach((checkbox) => {
+        checkbox.addEventListener("change", (event) => {
+          const id = event.target.dataset.libraryId;
+          if (event.target.checked) {
+            if (!state.selectedLibraryIds.includes(id)) state.selectedLibraryIds.push(id);
+          } else {
+            state.selectedLibraryIds = state.selectedLibraryIds.filter((item) => item !== id);
+          }
+          updateLibrarySummary(state.libraries.length);
+        });
+      });
+    }
+
+    function libraryOption(library) {
+      const checked = state.selectedLibraryIds.includes(library.id) ? "checked" : "";
+      const titleConfig = getLibraryTitleConfig(library);
+      return `
+        <div class="library-config-row">
+          <div class="library-config-head">
+            <label class="library-config-toggle">
+              <input type="checkbox" data-library-id="${library.id}" ${checked}>
+              <span class="library-config-name">${library.name}</span>
+            </label>
+            <span class="badge">${normalizeLibraryType(library.collection_type)}</span>
+          </div>
+          <div class="library-config-fields">
+            <label>
+              主标题
+              <input data-field="zh_title" data-library-id="${library.id}" value="${escapeHtml(titleConfig.zh_title || library.name)}" placeholder="${escapeHtml(library.name)}">
+            </label>
+            <label>
+              副标题
+              <input data-field="en_title" data-library-id="${library.id}" value="${escapeHtml(titleConfig.en_title || "")}" placeholder="例如 MOVIES">
+            </label>
+          </div>
+        </div>
+      `;
+    }
+
+    function escapeHtml(value) {
+      return String(value || "")
+        .replace(/&/g, "&amp;")
+        .replace(/"/g, "&quot;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;");
+    }
+
+    function formatDateTime(value) {
+      if (!value) return "";
+      const date = new Date(value);
+      if (Number.isNaN(date.getTime())) return String(value);
+      return date.toLocaleString("zh-CN", { hour12: false });
+    }
+
+    function normalizeJobStatus(status) {
+      return {
+        pending: "等待中",
+        running: "进行中",
+        completed: "已完成",
+        failed: "失败",
+        cancelled: "已取消",
+      }[status] || status;
+    }
+
+    function normalizeJobMessage(job) {
+      const message = (job.message || "").trim();
+      if (!message) return "暂无状态";
+      if (message === "Loading configuration") return "正在加载配置";
+      if (message === "Generating covers") return "正在准备生成封面";
+      if (message === "Job finished") return job.failed_libraries > 0 ? "任务结束，部分媒体库失败" : "任务已完成";
+      if (message === "Job cancelled") return "任务已取消";
+      const processing = message.match(/^Processing\s+(.+?)\s+\((\d+)\/(\d+)\)$/i);
+      if (processing) {
+        return `正在处理 ${processing[1]}（${processing[2]}/${processing[3]}）`;
+      }
+      return message;
+    }
+
+    function isJobDeletable(job) {
+      return !["pending", "running"].includes(job.status);
+    }
+
+    function normalizeStyleName(style) {
+      const matched = String(style || "").match(/^(static|animated)_(\d+)$/);
+      if (!matched) return style || "";
+      return `${matched[1] === "animated" ? "动态" : "静态"}风格 ${matched[2]}`;
+    }
+
+    function renderJobSelectionMeta() {
+      const total = state.jobs.filter(isJobDeletable).length;
+      const selected = state.selectedJobIds.length;
+      document.getElementById("jobsSelectionMeta").textContent = total > 0 ? `已选 ${selected} / ${total}` : "";
+      document.getElementById("deleteSelectedJobs").disabled = selected === 0;
+      document.getElementById("selectFinishedJobs").disabled = total === 0;
+    }
+
+    function renderHistorySelectionMeta() {
+      const total = state.historyItems.length;
+      const selected = state.selectedHistoryIds.length;
+      document.getElementById("historySelectionMeta").textContent = total > 0 ? `已选 ${selected} / ${total}` : "";
+      document.getElementById("deleteSelectedHistory").disabled = selected === 0;
+      document.getElementById("selectAllHistory").disabled = total === 0;
+    }
+
+    function jobCard(job) {
+      const canDelete = isJobDeletable(job);
+      const checked = state.selectedJobIds.includes(job.id) ? "checked" : "";
+      const timestamps = [
+        job.created_at ? `创建时间：${formatDateTime(job.created_at)}` : "",
+        job.started_at ? `开始时间：${formatDateTime(job.started_at)}` : "",
+        job.finished_at ? `结束时间：${formatDateTime(job.finished_at)}` : "",
+      ].filter(Boolean);
+      return `
+        <div class="item">
+          <div class="item-head">
+            <div class="item-head-main">
+              ${canDelete ? `<label class="item-select"><input type="checkbox" ${checked} onchange="toggleJobSelection('${job.id}', this.checked)"></label>` : ""}
+              <div>
+                <div class="item-title">${job.title || summarizeLibraryNames(job.library_names)}</div>
+                <div class="job-id">${job.id}</div>
+              </div>
+            </div>
+            <span class="badge">${normalizeJobStatus(job.status)}</span>
+          </div>
+          <div class="meta">${normalizeJobMessage(job)}</div>
+          ${timestamps.map((line) => `<div class="meta">${line}</div>`).join("")}
+          <div class="meta">目标媒体库: ${summarizeLibraryNames(job.library_names)}</div>
+          <div class="meta">完成 ${job.completed_libraries}/${job.total_libraries}，失败 ${job.failed_libraries}</div>
+          ${job.status === "running" ? `<div class="actions"><button class="secondary" onclick="cancelJob('${job.id}')">取消任务</button></div>` : ""}
+          ${canDelete ? `<div class="actions"><button class="secondary" onclick="deleteJob('${job.id}')">删除记录</button></div>` : ""}
+        </div>
+      `;
+    }
+
+    function historyCard(item) {
+      const checked = state.selectedHistoryIds.includes(item.id) ? "checked" : "";
+      return `
+        <div class="item">
+          <div class="item-head">
+            <div class="item-head-main">
+              <label class="item-select"><input type="checkbox" ${checked} onchange="toggleHistorySelection('${item.id}', this.checked)"></label>
+              <div>
+                <div class="item-title">${item.library_name}</div>
+              </div>
+            </div>
+            <span class="badge">${normalizeStyleName(item.style)}</span>
+          </div>
+          <div class="meta">${formatDateTime(item.created_at)}</div>
+          <div class="meta">来源项目: ${item.source_item_ids.join(", ") || "本地输入目录"}</div>
+          <div class="mini-actions">
+            ${item.saved_path ? `<a href="/history/${item.id}/image" target="_blank" rel="noreferrer">查看图片</a>` : ""}
+            <button class="secondary" onclick="deleteHistory('${item.id}')">删除记录</button>
+          </div>
+        </div>
+      `;
+    }
+
+    async function loadConfig() {
+      state.config = await api("/config");
+      state.selectedLibraryIds = [...state.config.selected_library_ids];
+      document.getElementById("baseUrl").value = state.config.emby.base_url;
+      document.getElementById("apiKey").value = state.config.emby.api_key;
+      document.getElementById("style").value = state.config.cover.style;
+      document.getElementById("sortBy").value = state.config.cover.sort_by;
+      document.getElementById("usePrimary").value = String(state.config.cover.use_primary);
+      document.getElementById("resolution").value = state.config.cover.resolution;
+      document.getElementById("customWidth").value = state.config.cover.custom_width;
+      document.getElementById("customHeight").value = state.config.cover.custom_height;
+      document.getElementById("zhFontPreset").value = state.config.cover.zh_font_preset;
+      document.getElementById("enFontPreset").value = state.config.cover.en_font_preset;
+      document.getElementById("zhFontCustom").value = state.config.cover.zh_font_custom;
+      document.getElementById("enFontCustom").value = state.config.cover.en_font_custom;
+      document.getElementById("zhFontSize").value = state.config.cover.zh_font_size;
+      document.getElementById("enFontSize").value = state.config.cover.en_font_size;
+      document.getElementById("titleScale").value = state.config.cover.title_scale;
+      document.getElementById("zhFontOffset").value = state.config.cover.zh_font_offset;
+      document.getElementById("titleSpacing").value = state.config.cover.title_spacing;
+      document.getElementById("enLineSpacing").value = state.config.cover.en_line_spacing;
+      document.getElementById("blurSize").value = state.config.cover.blur_size;
+      document.getElementById("colorRatio").value = state.config.cover.color_ratio;
+      document.getElementById("multiBlur").value = String(state.config.cover.multi_1_blur);
+      document.getElementById("animationDuration").value = state.config.cover.animation_duration;
+      document.getElementById("animationScroll").value = state.config.cover.animation_scroll;
+      document.getElementById("animationFps").value = state.config.cover.animation_fps;
+      document.getElementById("animationFormat").value = state.config.cover.animation_format;
+      document.getElementById("animationResolution").value = state.config.cover.animation_resolution;
+      document.getElementById("animationReduceColors").value = normalizeAnimationReduceColors(state.config.cover.animation_reduce_colors);
+      document.getElementById("animatedImageCount").value = state.config.cover.animated_2_image_count;
+      document.getElementById("animatedDepartureType").value = state.config.cover.animated_2_departure_type;
+      document.getElementById("saveRecentCovers").value = String(state.config.cover.save_recent_covers);
+      document.getElementById("coversHistoryLimit").value = state.config.cover.covers_history_limit_per_library;
+      document.getElementById("scheduleEnabled").value = String(state.config.schedule.enabled);
+      document.getElementById("scheduleCron").value = state.config.schedule.cron;
+      document.getElementById("webhookEnabled").value = String(state.config.webhook.enabled);
+      document.getElementById("webhookDelay").value = state.config.webhook.delay_seconds;
+      renderStyleSelector();
+      renderSortMeta();
+      renderWebhookUrl();
+    }
+
+    async function saveConfig() {
+      const config = JSON.parse(JSON.stringify(state.config));
+      config.emby.base_url = document.getElementById("baseUrl").value.trim();
+      config.emby.api_key = document.getElementById("apiKey").value.trim();
+      config.cover.style = document.getElementById("style").value;
+      config.cover.sort_by = document.getElementById("sortBy").value;
+      config.cover.use_primary = document.getElementById("usePrimary").value === "true";
+      config.cover.resolution = document.getElementById("resolution").value;
+      config.cover.custom_width = Number.parseInt(document.getElementById("customWidth").value || `${config.cover.custom_width}`, 10) || 1920;
+      config.cover.custom_height = Number.parseInt(document.getElementById("customHeight").value || `${config.cover.custom_height}`, 10) || 1080;
+      config.cover.zh_font_preset = document.getElementById("zhFontPreset").value;
+      config.cover.en_font_preset = document.getElementById("enFontPreset").value;
+      config.cover.zh_font_custom = document.getElementById("zhFontCustom").value.trim();
+      config.cover.en_font_custom = document.getElementById("enFontCustom").value.trim();
+      config.cover.zh_font_size = Number.parseFloat(document.getElementById("zhFontSize").value || `${config.cover.zh_font_size}`) || 170;
+      config.cover.en_font_size = Number.parseFloat(document.getElementById("enFontSize").value || `${config.cover.en_font_size}`) || 75;
+      config.cover.title_scale = Number.parseFloat(document.getElementById("titleScale").value || `${config.cover.title_scale}`) || 1.0;
+      config.cover.zh_font_offset = Number.parseFloat(document.getElementById("zhFontOffset").value || `${config.cover.zh_font_offset}`) || 0;
+      config.cover.title_spacing = Number.parseFloat(document.getElementById("titleSpacing").value || `${config.cover.title_spacing}`) || 40;
+      config.cover.en_line_spacing = Number.parseFloat(document.getElementById("enLineSpacing").value || `${config.cover.en_line_spacing}`) || 40;
+      config.cover.blur_size = Number.parseInt(document.getElementById("blurSize").value || `${config.cover.blur_size}`, 10) || 50;
+      config.cover.color_ratio = Number.parseFloat(document.getElementById("colorRatio").value || `${config.cover.color_ratio}`) || 0.8;
+      config.cover.multi_1_blur = document.getElementById("multiBlur").value === "true";
+      config.cover.animation_duration = Number.parseInt(document.getElementById("animationDuration").value || `${config.cover.animation_duration}`, 10) || 8;
+      config.cover.animation_scroll = document.getElementById("animationScroll").value;
+      config.cover.animation_fps = Number.parseInt(document.getElementById("animationFps").value || `${config.cover.animation_fps}`, 10) || 24;
+      config.cover.animation_format = document.getElementById("animationFormat").value;
+      config.cover.animation_resolution = document.getElementById("animationResolution").value;
+      config.cover.animation_reduce_colors = normalizeAnimationReduceColors(document.getElementById("animationReduceColors").value);
+      config.cover.animated_2_image_count = Number.parseInt(document.getElementById("animatedImageCount").value || `${config.cover.animated_2_image_count}`, 10) || 6;
+      config.cover.animated_2_departure_type = document.getElementById("animatedDepartureType").value;
+      config.cover.save_recent_covers = document.getElementById("saveRecentCovers").value === "true";
+      config.cover.covers_history_limit_per_library = Number.parseInt(document.getElementById("coversHistoryLimit").value || `${config.cover.covers_history_limit_per_library}`, 10) || 10;
+      config.schedule.enabled = document.getElementById("scheduleEnabled").value === "true";
+      config.schedule.cron = document.getElementById("scheduleCron").value.trim() || "0 3 * * *";
+      config.webhook.enabled = document.getElementById("webhookEnabled").value === "true";
+      config.webhook.delay_seconds = Number.parseInt(document.getElementById("webhookDelay").value || "60", 10) || 60;
+      config.webhook.token = "";
+      config.selected_library_ids = [...state.selectedLibraryIds];
+      if (state.libraries.length > 0) {
+        config.library_titles = state.libraries.map((library) => ({
+          library_id: library.id,
+          library_name: library.name,
+          zh_title: (document.querySelector(`[data-field="zh_title"][data-library-id="${library.id}"]`)?.value || library.name).trim(),
+          en_title: (document.querySelector(`[data-field="en_title"][data-library-id="${library.id}"]`)?.value || "").trim(),
+          bg_color: (state.config.library_titles || []).find((entry) => entry.library_id === library.id || entry.library_name === library.name)?.bg_color || "",
+        }));
+      }
+      state.config = await api("/config", {
+        method: "PUT",
+        body: JSON.stringify(config),
+      });
+      setDirty(false);
+    }
+
+    async function loadHealth() {
+      const data = await api("/health");
+      const banner = document.getElementById("healthBanner");
+      if (!data.configured) {
+        banner.className = "status-banner warn";
+        banner.innerHTML = `<span class="status-dot"></span><div>请先填写 Emby 服务地址和 API Key。</div>`;
+        return;
+      }
+      if (!data.emby_reachable) {
+        banner.className = "status-banner warn";
+        banner.innerHTML = `<span class="status-dot"></span><div>Emby 连接失败，请检查服务地址、API Key 或网络连通性。</div>`;
+        return;
+      }
+      banner.className = "status-banner ok";
+      banner.innerHTML = `<span class="status-dot"></span><div>Emby 连接正常。</div>`;
+    }
+
+    async function loadLibraries() {
+      try {
+        const libraries = await api("/libraries");
+        state.libraries = libraries;
+        if (!state.librarySelectionInitialized && state.selectedLibraryIds.length === 0 && libraries.length > 0) {
+          state.selectedLibraryIds = libraries.map((library) => library.id);
+        } else {
+          state.selectedLibraryIds = state.selectedLibraryIds.filter((id) => libraries.some((library) => library.id === id));
+        }
+        state.librarySelectionInitialized = true;
+        renderLibraryRows();
+        updateLibrarySummary(libraries.length);
+      } catch (error) {
+        state.libraries = [];
+        document.getElementById("libraries").innerHTML = `<div class="item">${error.message}</div>`;
+        updateLibrarySummary(0);
+      }
+    }
+
+    async function loadJobs() {
+      state.jobs = await api("/jobs");
+      state.selectedJobIds = state.selectedJobIds.filter((id) => state.jobs.some((job) => job.id === id && isJobDeletable(job)));
+      document.getElementById("jobs").innerHTML = state.jobs.map(jobCard).join("") || '<div class="item">暂无任务</div>';
+      renderJobSelectionMeta();
+    }
+
+    async function loadHistory() {
+      state.historyItems = await api("/history?limit=200");
+      state.selectedHistoryIds = state.selectedHistoryIds.filter((id) => state.historyItems.some((item) => item.id === id));
+      document.getElementById("history").innerHTML = state.historyItems.map(historyCard).join("") || '<div class="item">暂无历史</div>';
+      renderHistorySelectionMeta();
+    }
+
+    async function cancelJob(jobId) {
+      await api(`/jobs/${jobId}/cancel`, { method: "POST" });
+      await refresh();
+    }
+
+    function toggleJobSelection(jobId, checked) {
+      state.selectedJobIds = checked
+        ? [...new Set([...state.selectedJobIds, jobId])]
+        : state.selectedJobIds.filter((id) => id !== jobId);
+      renderJobSelectionMeta();
+    }
+
+    function toggleHistorySelection(recordId, checked) {
+      state.selectedHistoryIds = checked
+        ? [...new Set([...state.selectedHistoryIds, recordId])]
+        : state.selectedHistoryIds.filter((id) => id !== recordId);
+      renderHistorySelectionMeta();
+    }
+
+    async function deleteJob(jobId) {
+      try {
+        await api(`/jobs/${jobId}`, { method: "DELETE" });
+        state.selectedJobIds = state.selectedJobIds.filter((id) => id !== jobId);
+        await loadJobs();
+        showNotice("任务记录已删除");
+      } catch (error) {
+        showNotice(error.message || "删除任务记录失败", "warn", 4200);
+      }
+    }
+
+    async function selectFinishedJobs() {
+      const deletableIds = state.jobs.filter(isJobDeletable).map((job) => job.id);
+      const allSelected = deletableIds.length > 0 && deletableIds.every((id) => state.selectedJobIds.includes(id));
+      state.selectedJobIds = allSelected ? [] : deletableIds;
+      await loadJobs();
+    }
+
+    async function deleteSelectedJobs() {
+      if (state.selectedJobIds.length === 0) return;
+      try {
+        const result = await api("/jobs/delete", {
+          method: "POST",
+          body: JSON.stringify({ ids: state.selectedJobIds }),
+        });
+        state.selectedJobIds = [];
+        await loadJobs();
+        const blocked = Array.isArray(result?.blocked_ids) ? result.blocked_ids.length : 0;
+        showNotice(
+          blocked > 0 ? `已删除 ${result.deleted || 0} 条，${blocked} 条仍在运行，无法删除` : `已删除 ${result?.deleted || 0} 条任务记录`
+        );
+      } catch (error) {
+        showNotice(error.message || "批量删除任务记录失败", "warn", 4200);
+      }
+    }
+
+    async function generateAll() {
+      if (state.generating) return;
+      state.generating = true;
+      renderGenerateState();
+      try {
+        await api("/jobs/generate", {
+          method: "POST",
+          body: JSON.stringify({ library_ids: state.selectedLibraryIds }),
+        });
+        showJobsBanner("已创建生成任务，正在处理，可在这里查看进度。");
+        switchTab("jobs");
+        await loadJobs();
+        showNotice("已创建生成任务，可在任务管理查看进度。", "ok", 6000);
+      } catch (error) {
+        showNotice(error.message || "创建生成任务失败", "warn", 4200);
+      } finally {
+        state.generating = false;
+        renderGenerateState();
+      }
+    }
+
+    async function deleteHistory(recordId) {
+      try {
+        await api(`/history/${recordId}`, { method: "DELETE" });
+        state.selectedHistoryIds = state.selectedHistoryIds.filter((id) => id !== recordId);
+        await loadHistory();
+        showNotice("历史记录已删除");
+      } catch (error) {
+        showNotice(error.message || "删除历史记录失败", "warn", 4200);
+      }
+    }
+
+    async function selectAllHistory() {
+      const historyIds = state.historyItems.map((item) => item.id);
+      const allSelected = historyIds.length > 0 && historyIds.every((id) => state.selectedHistoryIds.includes(id));
+      state.selectedHistoryIds = allSelected ? [] : historyIds;
+      await loadHistory();
+    }
+
+    async function deleteSelectedHistory() {
+      if (state.selectedHistoryIds.length === 0) return;
+      try {
+        const result = await api("/history/delete", {
+          method: "POST",
+          body: JSON.stringify({ ids: state.selectedHistoryIds }),
+        });
+        state.selectedHistoryIds = [];
+        await loadHistory();
+        showNotice(`已删除 ${result?.deleted || 0} 条历史记录`);
+      } catch (error) {
+        showNotice(error.message || "批量删除历史记录失败", "warn", 4200);
+      }
+    }
+
+    async function clearHistory() {
+      try {
+        const result = await api("/history", { method: "DELETE" });
+        state.selectedHistoryIds = [];
+        await loadHistory();
+        showNotice(`已清空 ${result?.deleted || 0} 条历史记录`);
+      } catch (error) {
+        showNotice(error.message || "清空历史记录失败", "warn", 4200);
+      }
+    }
+
+    async function selectAllLibraries() {
+      state.selectedLibraryIds = state.libraries.map((library) => library.id);
+      renderLibraryRows();
+      updateLibrarySummary(state.libraries.length);
+      setDirty(true);
+    }
+
+    async function clearAllLibraries() {
+      state.selectedLibraryIds = [];
+      renderLibraryRows();
+      updateLibrarySummary(state.libraries.length);
+      setDirty(true);
+    }
+
+    function toggleLibrarySection(forceOpen) {
+      state.librarySectionOpen = typeof forceOpen === "boolean" ? forceOpen : !state.librarySectionOpen;
+      renderLibrarySection();
+    }
+
+    function toggleBasicSection(forceOpen) {
+      state.basicSectionOpen = typeof forceOpen === "boolean" ? forceOpen : !state.basicSectionOpen;
+      renderBasicSection();
+    }
+
+    function switchTab(tabName) {
+      state.activeTab = tabName;
+      renderTabs();
+    }
+
+    async function refresh() {
+      await Promise.all([loadHealth(), loadJobs(), loadHistory()]);
+    }
+
+    document.getElementById("saveConfig").addEventListener("click", saveConfig);
+    document.getElementById("loadLibraries").addEventListener("click", loadLibraries);
+    document.getElementById("generateAll").addEventListener("click", generateAll);
+    document.getElementById("sortBy").addEventListener("change", renderSortMeta);
+    document.getElementById("styleVariantStatic").addEventListener("click", () => {
+      const { index } = parseStyle(document.getElementById("style").value);
+      setStyleChoice("static", index);
+    });
+    document.getElementById("styleVariantAnimated").addEventListener("click", () => {
+      const { index } = parseStyle(document.getElementById("style").value);
+      setStyleChoice("animated", index);
+    });
+    document.getElementById("resolution").addEventListener("change", renderStyleFieldVisibility);
+    document.getElementById("refreshHistory").addEventListener("click", loadHistory);
+    document.getElementById("clearHistory").addEventListener("click", clearHistory);
+    document.getElementById("selectFinishedJobs").addEventListener("click", selectFinishedJobs);
+    document.getElementById("deleteSelectedJobs").addEventListener("click", deleteSelectedJobs);
+    document.getElementById("selectAllHistory").addEventListener("click", selectAllHistory);
+    document.getElementById("deleteSelectedHistory").addEventListener("click", deleteSelectedHistory);
+    document.getElementById("selectAllLibraries").addEventListener("click", selectAllLibraries);
+    document.getElementById("clearAllLibraries").addEventListener("click", clearAllLibraries);
+    document.getElementById("copyWebhookUrl").addEventListener("click", copyWebhookUrl);
+    document.getElementById("basicSectionToggle").addEventListener("click", () => toggleBasicSection());
+    document.getElementById("librarySectionToggle").addEventListener("click", () => toggleLibrarySection());
+    document.getElementById("tabSettings").addEventListener("click", () => switchTab("settings"));
+    document.getElementById("tabJobs").addEventListener("click", () => switchTab("jobs"));
+    document.getElementById("tabHistory").addEventListener("click", () => switchTab("history"));
+    window.deleteJob = deleteJob;
+    window.deleteHistory = deleteHistory;
+    window.toggleJobSelection = toggleJobSelection;
+    window.toggleHistorySelection = toggleHistorySelection;
+    document.addEventListener("click", (event) => {
+      if (!event.target.closest(".custom-select")) {
+        closeCustomSelects();
+      }
+    });
+    document.getElementById("panelSettings").addEventListener("input", (event) => {
+      if (event.target.matches("input:not([readonly]), textarea, select")) {
+        setDirty(true);
+      }
+    });
+    document.getElementById("panelSettings").addEventListener("change", (event) => {
+      if (event.target.matches("input:not([readonly]), textarea, select")) {
+        setDirty(true);
+      }
+    });
+    async function init() {
+      await loadConfig();
+      initCustomSelects();
+      await Promise.all([loadHealth(), loadLibraries(), loadJobs(), loadHistory()]);
+      renderBasicSection();
+      renderLibrarySection();
+      renderTabs();
+      renderSaveState();
+      renderGenerateState();
+    }
+
+    init();
+    setInterval(refresh, 5000);
+  </script>
+</body>
+
+</html>

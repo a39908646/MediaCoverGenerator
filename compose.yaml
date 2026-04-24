@@ -1,0 +1,23 @@
+services:
+  mediacovergenerator:
+    image: mediacovergenerator:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: mediacovergenerator
+    hostname: mediacovergenerator
+    restart: unless-stopped
+    ports:
+      - "38100:38100"
+    environment:
+      TZ: Asia/Shanghai
+      MCG_HOST: 0.0.0.0
+      MCG_PORT: 38100
+      PYTHONUNBUFFERED: "1"
+    volumes:
+      - ./data:/app/data
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
