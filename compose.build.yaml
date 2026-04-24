@@ -1,0 +1,7 @@
+services:
+  mediacovergenerator:
+    image: mediacovergenerator:local
+    pull_policy: never
+    build:
+      context: .
+      dockerfile: Dockerfile

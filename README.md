@@ -38,6 +38,7 @@
 - 适合 NAS
 - 升级方便
 - 配置和历史都会保存在 `data/` 目录里
+- 默认直接拉现成镜像，不需要你在 NAS 本地慢慢 build
 
 ### 2.1 准备环境
 
@@ -53,12 +54,12 @@
 进入项目目录后执行：
 
 ```bash
-docker compose up -d --build
+docker compose up -d
 ```
 
 第一次启动会做这些事：
 
-- 构建镜像
+- 从 GHCR 拉取已经发布好的镜像
 - 启动容器
 - 监听 `38100` 端口
 - 自动创建 `data/` 目录
@@ -214,7 +215,7 @@ library.new
 如果你用飞牛，推荐这样做：
 
 1. 把项目放到固定目录
-2. 在这个目录里执行 `docker compose up -d --build`
+2. 在这个目录里执行 `docker compose up -d`
 3. 打开 `http://你的NAS_IP:38100/`
 4. 填一次 Emby 配置并保存
 5. 开启 `定时更新` 或 `入库监控`
@@ -226,7 +227,8 @@ library.new
 代码更新后，在项目目录执行：
 
 ```bash
-docker compose up -d --build
+docker compose pull
+docker compose up -d
 ```
 
 ### 5.2 停止服务
@@ -245,6 +247,16 @@ docker compose restart
 
 ```bash
 docker compose logs -f
+```
+
+### 5.5 如果你非要本地构建
+
+默认不需要。
+
+如果你确实想自己在本地构建镜像，可以用：
+
+```bash
+docker compose -f compose.yaml -f compose.build.yaml up -d --build
 ```
 
 ## 6. `data/` 目录是干什么的
@@ -434,7 +446,7 @@ data/config.json
 `compose.yaml` 默认使用：
 
 - 容器名：`mediacovergenerator`
-- 镜像名：`mediacovergenerator:latest`
+- 镜像名：`ghcr.io/a39908646/mediacovergenerator:latest`
 
 ## 11. 项目目录说明
 
@@ -473,7 +485,7 @@ MediaCoverGenerator/
 
 如果你是第一次用，最稳的顺序就是：
 
-1. `docker compose up -d --build`
+1. `docker compose up -d`
 2. 打开页面
 3. 填 Emby 地址和 API Key
 4. 保存设置
