@@ -17,10 +17,17 @@
       --brand-dark: #6d2e17;
       --ok: #2f6a4d;
       --warn: #9a5b13;
+      --floating-actions-space: 176px;
     }
 
     * {
       box-sizing: border-box;
+    }
+
+    html,
+    body {
+      max-width: 100%;
+      overflow-x: hidden;
     }
 
     body {
@@ -37,13 +44,14 @@
     .wrap {
       max-width: 1180px;
       margin: 0 auto;
-      padding: 32px 20px 48px;
+      padding: 32px 20px calc(48px + var(--floating-actions-space));
     }
 
     h1 {
       margin: 0 0 8px;
       font-size: 40px;
       letter-spacing: 0.02em;
+      overflow-wrap: anywhere;
     }
 
     p.lead {
@@ -291,6 +299,7 @@
       font-size: 13px;
       color: var(--muted);
       margin-top: 6px;
+      overflow-wrap: anywhere;
     }
 
     .hint {
@@ -299,28 +308,6 @@
       font-weight: 400;
       color: var(--muted);
       line-height: 1.6;
-    }
-
-    .style-mode-toggle {
-      display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 10px;
-      margin-bottom: 14px;
-    }
-
-    .toggle-chip {
-      padding: 12px 16px;
-      border-radius: 16px;
-      border: 1px solid var(--line);
-      background: rgba(255, 255, 255, 0.78);
-      color: var(--text);
-      font-weight: 600;
-    }
-
-    .toggle-chip.active {
-      background: linear-gradient(135deg, var(--brand), var(--brand-dark));
-      color: #fff;
-      border-color: transparent;
     }
 
     .style-grid {
@@ -465,6 +452,10 @@
       flex: 1;
     }
 
+    .item-head-main > div {
+      min-width: 0;
+    }
+
     .item-select {
       display: inline-flex;
       align-items: center;
@@ -516,6 +507,7 @@
       font-family: Consolas, monospace;
       font-size: 12px;
       color: var(--muted);
+      overflow-wrap: anywhere;
     }
 
     .library-actions {
@@ -742,6 +734,10 @@
     }
 
     @media (max-width: 900px) {
+      :root {
+        --floating-actions-space: 160px;
+      }
+
       .fields {
         grid-template-columns: 1fr;
       }
@@ -783,8 +779,24 @@
     }
 
     @media (max-width: 560px) {
+      h1 {
+        font-size: clamp(30px, 9vw, 40px);
+        line-height: 1.05;
+      }
+
       .style-grid {
         grid-template-columns: 1fr;
+      }
+
+      .item-head,
+      .library-config-head {
+        flex-direction: column;
+        align-items: stretch;
+      }
+
+      .badge {
+        align-self: flex-start;
+        margin-left: 0;
       }
     }
   </style>
@@ -895,10 +907,6 @@
         <section class="panel">
           <h2>封面风格</h2>
           <input id="style" type="hidden">
-          <div class="style-mode-toggle">
-            <button class="toggle-chip active" id="styleVariantStatic" data-variant="static" type="button">静态</button>
-            <button class="toggle-chip" id="styleVariantAnimated" data-variant="animated" type="button">动态</button>
-          </div>
           <div id="styleGrid" class="style-grid"></div>
           <div class="style-settings-grid">
             <section class="style-group">
@@ -934,7 +942,7 @@
                     <option value="true">模糊背景</option>
                     <option value="false">纯色渐变</option>
                   </select>
-                  <div class="hint">主要影响静态 3 和多数动图风格。</div>
+                  <div class="hint">主要影响静态 3 的九宫格背景表现。</div>
                 </div>
                 <div>
                   <label for="blurSize">背景模糊强度</label>
@@ -997,65 +1005,6 @@
                 <div>
                   <label for="enLineSpacing">副标题行间距</label>
                   <input id="enLineSpacing" type="number" step="1" placeholder="40">
-                </div>
-              </div>
-            </section>
-            <section id="animatedSettingsGroup" class="style-group">
-              <h3>动态图参数</h3>
-              <div class="fields">
-                <div>
-                  <label for="animationDuration">动画循环周期（秒）</label>
-                  <input id="animationDuration" type="number" min="1" step="1" placeholder="8">
-                </div>
-                <div>
-                  <label for="animationFps">帧率（FPS）</label>
-                  <input id="animationFps" type="number" min="1" step="1" placeholder="24">
-                </div>
-                <div>
-                  <label for="animationFormat">输出格式</label>
-                  <select id="animationFormat">
-                    <option value="apng">APNG</option>
-                    <option value="gif">GIF</option>
-                    <option value="webp">WebP（推荐）</option>
-                  </select>
-                </div>
-                <div>
-                  <label for="animationResolution">动图分辨率</label>
-                  <select id="animationResolution">
-                    <option value="320x180">320x180</option>
-                    <option value="400x225">400x225（推荐）</option>
-                    <option value="480x270">480x270</option>
-                    <option value="640x360">640x360</option>
-                  </select>
-                </div>
-                <div>
-                  <label for="animationReduceColors">颜色压缩等级</label>
-                  <select id="animationReduceColors">
-                    <option value="off">关闭</option>
-                    <option value="medium">中等压缩（推荐）</option>
-                    <option value="high">强压缩</option>
-                  </select>
-                </div>
-                <div id="animatedImageCountField">
-                  <label for="animatedImageCount">图片数量</label>
-                  <input id="animatedImageCount" type="number" min="3" max="9" step="1" placeholder="6">
-                </div>
-                <div id="animatedDepartureTypeField">
-                  <label for="animatedDepartureType">动图 1 离场方式</label>
-                  <select id="animatedDepartureType">
-                    <option value="fly">飞出</option>
-                    <option value="fade">淡出</option>
-                    <option value="crossfade">交叉淡化</option>
-                  </select>
-                </div>
-                <div id="animationScrollField">
-                  <label for="animationScroll">动图 3 滚动方式</label>
-                  <select id="animationScroll">
-                    <option value="alternate">往返</option>
-                    <option value="alternate_reverse">反向往返</option>
-                    <option value="down">向下</option>
-                    <option value="up">向上</option>
-                  </select>
                 </div>
               </div>
             </section>
@@ -1133,7 +1082,6 @@
     let noticeTimer = null;
     const STYLE_META = {
       static_1: {
-        variant: "static",
         index: 1,
         title: "静态 1",
         image: "/assets/images/style_1.jpeg",
@@ -1141,7 +1089,6 @@
         hint: "单图风格。会选 1 张素材做封面，整体最保守。"
       },
       static_2: {
-        variant: "static",
         index: 2,
         title: "静态 2",
         image: "/assets/images/style_2.jpeg",
@@ -1149,60 +1096,18 @@
         hint: "单图风格。比静态 1 更强调版式和线条。"
       },
       static_3: {
-        variant: "static",
         index: 3,
         title: "静态 3",
         image: "/assets/images/style_3.jpeg",
         description: "九宫格拼贴，更能体现一个媒体库的内容密度，适合混合内容库。",
         hint: "多图风格。会尽量准备 9 张图，不够会自动补齐。"
-      },
-      static_4: {
-        variant: "static",
-        index: 4,
-        title: "静态 4",
-        image: "/assets/images/style_4.jpeg",
-        description: "单张海报配更强的标题视觉，适合想突出库名而不是素材细节。",
-        hint: "单图风格。标题感最强，风格更海报化。"
-      },
-      animated_1: {
-        variant: "animated",
-        index: 1,
-        title: "动图 1",
-        image: "/assets/images/style_1.jpeg",
-        description: "卡片式拼贴动效，画面更活，但生成时间和资源占用都更高。",
-        hint: "动图风格。需要多张素材，适合展示型媒体库。"
-      },
-      animated_2: {
-        variant: "animated",
-        index: 2,
-        title: "动图 2",
-        image: "/assets/images/style_2.jpeg",
-        description: "拼贴块位移和离场动效，整体比动图 1 更偏节奏感。",
-        hint: "动图风格。素材数量可配置，默认比九宫格要求低。"
-      },
-      animated_3: {
-        variant: "animated",
-        index: 3,
-        title: "动图 3",
-        image: "/assets/images/style_3.jpeg",
-        description: "九宫格滚动动图，最能展示“这个库最近都有什么”。",
-        hint: "动图风格。通常要准备 9 张图，生成耗时相对更高。"
-      },
-      animated_4: {
-        variant: "animated",
-        index: 4,
-        title: "动图 4",
-        image: "/assets/images/style_4.jpeg",
-        description: "强标题感的动图版本，适合想保留标题冲击力又希望封面会动。",
-        hint: "动图风格。视觉重点仍然在标题和主体海报。"
       }
     };
 
     const STYLE_CARD_META = {
       1: { image: "/assets/images/style_1.jpeg", title: "风格 1", note: "最稳，适合大多数库。" },
       2: { image: "/assets/images/style_2.jpeg", title: "风格 2", note: "版式更强，画面更利落。" },
-      3: { image: "/assets/images/style_3.jpeg", title: "风格 3", note: "九宫格，更强调内容密度。" },
-      4: { image: "/assets/images/style_4.jpeg", title: "风格 4", note: "标题感最强，适合展示库名。" }
+      3: { image: "/assets/images/style_3.jpeg", title: "风格 3", note: "九宫格，更强调内容密度。" }
     };
 
     const SORT_META = {
@@ -1230,20 +1135,19 @@
       return type.includes("application/json") ? response.json() : response.text();
     }
 
-    function composeStyle(variant, index) {
-      const safeVariant = variant === "animated" ? "animated" : "static";
-      const safeIndex = Math.min(4, Math.max(1, Number(index) || 1));
-      return `${safeVariant}_${safeIndex}`;
+    function composeStyle(index) {
+      const safeIndex = Math.min(3, Math.max(1, Number(index) || 1));
+      return `static_${safeIndex}`;
     }
 
     function parseStyle(style) {
       const safeStyle = STYLE_META[style] ? style : "static_1";
       const meta = STYLE_META[safeStyle];
-      return { variant: meta.variant, index: meta.index, style: safeStyle };
+      return { index: meta.index, style: safeStyle };
     }
 
-    function setStyleChoice(variant, index) {
-      const nextStyle = composeStyle(variant, index);
+    function setStyleChoice(index) {
+      const nextStyle = composeStyle(index);
       const currentStyle = document.getElementById("style").value;
       document.getElementById("style").value = nextStyle;
       if (nextStyle !== currentStyle) {
@@ -1253,10 +1157,8 @@
     }
 
     function renderStyleSelector() {
-      const { variant, index, style } = parseStyle(document.getElementById("style").value);
-      document.getElementById("styleVariantStatic").classList.toggle("active", variant === "static");
-      document.getElementById("styleVariantAnimated").classList.toggle("active", variant === "animated");
-      document.getElementById("styleGrid").innerHTML = [1, 2, 3, 4].map((styleIndex) => {
+      const { index } = parseStyle(document.getElementById("style").value);
+      document.getElementById("styleGrid").innerHTML = [1, 2, 3].map((styleIndex) => {
         const item = STYLE_CARD_META[styleIndex];
         const active = styleIndex === index ? "active" : "";
         return `
@@ -1265,7 +1167,7 @@
             <div class="style-card-body">
               <div class="style-card-title">
                 <span>${item.title}</span>
-                ${styleIndex === index ? `<span class="badge">${variant === "static" ? "静态" : "动态"}</span>` : ""}
+                ${styleIndex === index ? `<span class="badge">当前</span>` : ""}
               </div>
               <div class="style-card-note">${item.note}</div>
             </div>
@@ -1274,27 +1176,16 @@
       }).join("");
       document.querySelectorAll("[data-style-index]").forEach((button) => {
         button.addEventListener("click", () => {
-          setStyleChoice(variant, button.dataset.styleIndex);
+          setStyleChoice(button.dataset.styleIndex);
         });
       });
       renderStyleFieldVisibility();
     }
 
     function renderStyleFieldVisibility() {
-      const { variant, index } = parseStyle(document.getElementById("style").value);
       const customResolution = document.getElementById("resolution").value === "custom";
       document.getElementById("customWidthField").classList.toggle("hidden", !customResolution);
       document.getElementById("customHeightField").classList.toggle("hidden", !customResolution);
-      document.getElementById("animatedSettingsGroup").classList.toggle("hidden", variant !== "animated");
-      document.getElementById("animatedImageCountField").classList.toggle("hidden", ![1, 2, 4].includes(index));
-      document.getElementById("animatedDepartureTypeField").classList.toggle("hidden", index !== 1);
-      document.getElementById("animationScrollField").classList.toggle("hidden", index !== 3);
-    }
-
-    function normalizeAnimationReduceColors(value) {
-      if (value === "low") return "medium";
-      if (value === "strong") return "high";
-      return ["off", "medium", "high"].includes(value) ? value : "medium";
     }
 
     function renderSortMeta() {
@@ -1680,14 +1571,6 @@
       document.getElementById("blurSize").value = state.config.cover.blur_size;
       document.getElementById("colorRatio").value = state.config.cover.color_ratio;
       document.getElementById("multiBlur").value = String(state.config.cover.multi_1_blur);
-      document.getElementById("animationDuration").value = state.config.cover.animation_duration;
-      document.getElementById("animationScroll").value = state.config.cover.animation_scroll;
-      document.getElementById("animationFps").value = state.config.cover.animation_fps;
-      document.getElementById("animationFormat").value = state.config.cover.animation_format;
-      document.getElementById("animationResolution").value = state.config.cover.animation_resolution;
-      document.getElementById("animationReduceColors").value = normalizeAnimationReduceColors(state.config.cover.animation_reduce_colors);
-      document.getElementById("animatedImageCount").value = state.config.cover.animated_2_image_count;
-      document.getElementById("animatedDepartureType").value = state.config.cover.animated_2_departure_type;
       document.getElementById("saveRecentCovers").value = String(state.config.cover.save_recent_covers);
       document.getElementById("coversHistoryLimit").value = state.config.cover.covers_history_limit_per_library;
       document.getElementById("scheduleEnabled").value = String(state.config.schedule.enabled);
@@ -1722,14 +1605,6 @@
       config.cover.blur_size = Number.parseInt(document.getElementById("blurSize").value || `${config.cover.blur_size}`, 10) || 50;
       config.cover.color_ratio = Number.parseFloat(document.getElementById("colorRatio").value || `${config.cover.color_ratio}`) || 0.8;
       config.cover.multi_1_blur = document.getElementById("multiBlur").value === "true";
-      config.cover.animation_duration = Number.parseInt(document.getElementById("animationDuration").value || `${config.cover.animation_duration}`, 10) || 8;
-      config.cover.animation_scroll = document.getElementById("animationScroll").value;
-      config.cover.animation_fps = Number.parseInt(document.getElementById("animationFps").value || `${config.cover.animation_fps}`, 10) || 24;
-      config.cover.animation_format = document.getElementById("animationFormat").value;
-      config.cover.animation_resolution = document.getElementById("animationResolution").value;
-      config.cover.animation_reduce_colors = normalizeAnimationReduceColors(document.getElementById("animationReduceColors").value);
-      config.cover.animated_2_image_count = Number.parseInt(document.getElementById("animatedImageCount").value || `${config.cover.animated_2_image_count}`, 10) || 6;
-      config.cover.animated_2_departure_type = document.getElementById("animatedDepartureType").value;
       config.cover.save_recent_covers = document.getElementById("saveRecentCovers").value === "true";
       config.cover.covers_history_limit_per_library = Number.parseInt(document.getElementById("coversHistoryLimit").value || `${config.cover.covers_history_limit_per_library}`, 10) || 10;
       config.schedule.enabled = document.getElementById("scheduleEnabled").value === "true";
@@ -1961,14 +1836,6 @@
     document.getElementById("loadLibraries").addEventListener("click", loadLibraries);
     document.getElementById("generateAll").addEventListener("click", generateAll);
     document.getElementById("sortBy").addEventListener("change", renderSortMeta);
-    document.getElementById("styleVariantStatic").addEventListener("click", () => {
-      const { index } = parseStyle(document.getElementById("style").value);
-      setStyleChoice("static", index);
-    });
-    document.getElementById("styleVariantAnimated").addEventListener("click", () => {
-      const { index } = parseStyle(document.getElementById("style").value);
-      setStyleChoice("animated", index);
-    });
     document.getElementById("resolution").addEventListener("change", renderStyleFieldVisibility);
     document.getElementById("refreshHistory").addEventListener("click", loadHistory);
     document.getElementById("clearHistory").addEventListener("click", clearHistory);

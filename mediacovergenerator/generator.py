@@ -22,11 +22,6 @@ STYLE_FACTORIES: dict[str, tuple[str, str]] = {
     "static_1": ("mediacovergenerator.style.style_static_1", "create_style_static_1"),
     "static_2": ("mediacovergenerator.style.style_static_2", "create_style_static_2"),
     "static_3": ("mediacovergenerator.style.style_static_3", "create_style_static_3"),
-    "static_4": ("mediacovergenerator.style.style_static_4", "create_style_static_4"),
-    "animated_1": ("mediacovergenerator.style.style_animated_1", "create_style_animated_1"),
-    "animated_2": ("mediacovergenerator.style.style_animated_2", "create_style_animated_2"),
-    "animated_3": ("mediacovergenerator.style.style_animated_3", "create_style_animated_3"),
-    "animated_4": ("mediacovergenerator.style.style_animated_4", "create_style_animated_4"),
 }
 
 
@@ -52,15 +47,12 @@ class PosterGenerator:
         return safe
 
     def get_required_items(self, config: AppConfig) -> int:
-        style = config.cover.style
-        if style in {"static_3", "animated_3"}:
+        if config.cover.style == "static_3":
             return 9
-        if style in {"animated_1", "animated_2", "animated_4"}:
-            return max(3, min(9, int(config.cover.animated_2_image_count)))
         return 1
 
     def is_single_image_style(self, config: AppConfig) -> bool:
-        return config.cover.style in {"static_1", "static_2", "static_4"}
+        return config.cover.style in {"static_1", "static_2"}
 
     def library_cache_dir(self, config: AppConfig, library_name: str) -> Path:
         return resolve_path(self.project_root, config.paths.cache_dir) / self.sanitize_filename(library_name)
@@ -176,18 +168,6 @@ class PosterGenerator:
                 resolution_config=resolution_config,
                 bg_color_config=bg_color_config,
             )
-        if style == "static_4":
-            return self._get_style_callable(style)(
-                str(image_path),
-                title_tuple,
-                font_path,
-                font_size=font_size,
-                font_offset=font_offset,
-                blur_size=config.cover.blur_size,
-                color_ratio=config.cover.color_ratio,
-                resolution_config=resolution_config,
-                bg_color_config=bg_color_config,
-            )
         if style == "static_3":
             return self._get_style_callable(style)(
                 image_dir,
@@ -200,87 +180,6 @@ class PosterGenerator:
                 color_ratio=config.cover.color_ratio,
                 resolution_config=resolution_config,
                 bg_color_config=bg_color_config,
-            )
-        if style == "animated_1":
-            return self._get_style_callable(style)(
-                image_dir,
-                title_tuple,
-                font_path,
-                font_size=font_size,
-                font_offset=font_offset,
-                is_blur=config.cover.multi_1_blur,
-                blur_size=config.cover.blur_size,
-                color_ratio=config.cover.color_ratio,
-                resolution_config=resolution_config,
-                bg_color_config=bg_color_config,
-                animation_duration=config.cover.animation_duration,
-                animation_fps=config.cover.animation_fps,
-                animation_format=config.cover.animation_format,
-                animation_resolution=config.cover.animation_resolution,
-                animation_reduce_colors=config.cover.animation_reduce_colors,
-                image_count=self.get_required_items(config),
-                departure_type=config.cover.animated_2_departure_type,
-                stop_event=stop_event,
-            )
-        if style == "animated_2":
-            return self._get_style_callable(style)(
-                image_dir,
-                title_tuple,
-                font_path,
-                font_size=font_size,
-                font_offset=font_offset,
-                is_blur=config.cover.multi_1_blur,
-                blur_size=config.cover.blur_size,
-                color_ratio=config.cover.color_ratio,
-                resolution_config=resolution_config,
-                bg_color_config=bg_color_config,
-                animation_duration=config.cover.animation_duration,
-                animation_fps=config.cover.animation_fps,
-                animation_format=config.cover.animation_format,
-                animation_resolution=config.cover.animation_resolution,
-                animation_reduce_colors=config.cover.animation_reduce_colors,
-                image_count=self.get_required_items(config),
-                stop_event=stop_event,
-            )
-        if style == "animated_3":
-            return self._get_style_callable(style)(
-                image_dir,
-                title_tuple,
-                font_path,
-                font_size=font_size,
-                font_offset=font_offset,
-                is_blur=config.cover.multi_1_blur,
-                blur_size=config.cover.blur_size,
-                color_ratio=config.cover.color_ratio,
-                resolution_config=resolution_config,
-                bg_color_config=bg_color_config,
-                animation_duration=config.cover.animation_duration,
-                animation_scroll=config.cover.animation_scroll,
-                animation_fps=config.cover.animation_fps,
-                animation_format=config.cover.animation_format,
-                animation_resolution=config.cover.animation_resolution,
-                animation_reduce_colors=config.cover.animation_reduce_colors,
-                stop_event=stop_event,
-            )
-        if style == "animated_4":
-            return self._get_style_callable(style)(
-                image_dir,
-                title_tuple,
-                font_path,
-                font_size=font_size,
-                font_offset=font_offset,
-                is_blur=config.cover.multi_1_blur,
-                blur_size=config.cover.blur_size,
-                color_ratio=config.cover.color_ratio,
-                resolution_config=resolution_config,
-                bg_color_config=bg_color_config,
-                animation_duration=config.cover.animation_duration,
-                animation_fps=config.cover.animation_fps,
-                animation_format=config.cover.animation_format,
-                animation_resolution=config.cover.animation_resolution,
-                animation_reduce_colors=config.cover.animation_reduce_colors,
-                image_count=self.get_required_items(config),
-                stop_event=stop_event,
             )
         raise ValueError(f"Unsupported style: {style}")
 
@@ -347,11 +246,6 @@ class PosterGenerator:
 
     def _font_sizes(self, config: AppConfig, resolution_config: "ResolutionConfig") -> tuple[float, float]:
         title_scale = max(float(config.cover.title_scale or 1.0), 0.1)
-        if config.cover.style.startswith("animated"):
-            return (
-                float(config.cover.zh_font_size) * title_scale,
-                float(config.cover.en_font_size) * title_scale,
-            )
         return (
             resolution_config.get_font_size(float(config.cover.zh_font_size)) * title_scale,
             resolution_config.get_font_size(float(config.cover.en_font_size)) * title_scale,

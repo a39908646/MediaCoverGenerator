@@ -11,11 +11,6 @@ CoverStyle = Literal[
     "static_1",
     "static_2",
     "static_3",
-    "static_4",
-    "animated_1",
-    "animated_2",
-    "animated_3",
-    "animated_4",
 ]
 
 
@@ -78,14 +73,6 @@ class CoverSettings(BaseModel):
     multi_1_blur: bool = True
     bg_color_mode: Literal["auto", "custom", "config"] = "auto"
     custom_bg_color: str = ""
-    animation_duration: int = 8
-    animation_scroll: str = "alternate"
-    animation_fps: int = 24
-    animation_format: Literal["apng", "gif", "webp"] = "apng"
-    animation_resolution: str = "320x180"
-    animation_reduce_colors: Literal["off", "low", "medium", "high"] = "medium"
-    animated_2_image_count: int = 6
-    animated_2_departure_type: str = "fly"
     save_recent_covers: bool = True
     covers_history_limit_per_library: int = 10
 

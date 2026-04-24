@@ -31,6 +31,7 @@ class ConfigRepository:
                 self.save(config)
                 return config
             data = json.loads(self.config_path.read_text(encoding="utf-8"))
+            data = self._normalize_legacy_config_data(data)
             config = AppConfig.model_validate(data)
             if not config.library_titles and config.titles_yaml.strip():
                 config = config.model_copy(
@@ -74,6 +75,38 @@ class ConfigRepository:
             )
             self.ensure_directories(config)
             return config
+
+    @staticmethod
+    def _normalize_legacy_config_data(data: dict[str, Any]) -> dict[str, Any]:
+        if not isinstance(data, dict):
+            return data
+
+        normalized = copy.deepcopy(data)
+        cover = normalized.get("cover")
+        if not isinstance(cover, dict):
+            return normalized
+
+        legacy_style = str(cover.get("style") or "").strip().lower()
+        if legacy_style == "static_4":
+            cover["style"] = "static_1"
+            legacy_style = "static_1"
+        if legacy_style.startswith("animated_"):
+            suffix = legacy_style.split("_", 1)[1] if "_" in legacy_style else "1"
+            cover["style"] = f"static_{suffix}" if suffix in {"1", "2", "3"} else "static_1"
+
+        for key in [
+            "animation_duration",
+            "animation_scroll",
+            "animation_fps",
+            "animation_format",
+            "animation_resolution",
+            "animation_reduce_colors",
+            "animated_2_image_count",
+            "animated_2_departure_type",
+        ]:
+            cover.pop(key, None)
+
+        return normalized
 
     def ensure_directories(self, config: AppConfig) -> None:
         for raw_path in [
