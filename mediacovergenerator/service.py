@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import shutil
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import TYPE_CHECKING
 from urllib.parse import urlparse
@@ -77,14 +77,14 @@ class LibraryUpdateService:
         client.set_library_image(str(library_id), encoded_cover, content_type)
 
         record = HistoryRecord(
-            id=hashlib.md5(f"{library_id}-{datetime.utcnow().isoformat()}".encode("utf-8")).hexdigest(),
+            id=hashlib.md5(f"{library_id}-{datetime.now(timezone.utc).isoformat()}".encode("utf-8")).hexdigest(),
             server=config.emby.name,
             library_id=str(library_id),
             library_name=library_name,
             source_item_ids=source_item_ids,
             saved_path=str(saved_path) if saved_path else None,
             style=config.cover.style,
-            created_at=datetime.utcnow(),
+            created_at=datetime.now(timezone.utc),
         )
         self.history_repository.append(record)
         return record

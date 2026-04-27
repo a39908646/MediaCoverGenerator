@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
 SortBy = Literal["Random", "PremiereDate", "DateCreated"]
@@ -134,6 +134,11 @@ class HistoryRecord(BaseModel):
     style: str
     created_at: datetime
 
+    @field_validator("created_at", mode="after")
+    @classmethod
+    def ensure_created_at_utc(cls, value: datetime) -> datetime:
+        return value if value.tzinfo is not None else value.replace(tzinfo=timezone.utc)
+
 
 class JobSummary(BaseModel):
     id: str
@@ -150,6 +155,13 @@ class JobSummary(BaseModel):
     failed_libraries: int = 0
     cancel_requested: bool = False
     errors: list[str] = Field(default_factory=list)
+
+    @field_validator("created_at", "started_at", "finished_at", mode="after")
+    @classmethod
+    def ensure_timestamps_utc(cls, value: datetime | None) -> datetime | None:
+        if value is None or value.tzinfo is not None:
+            return value
+        return value.replace(tzinfo=timezone.utc)
 
 
 class HealthResponse(BaseModel):

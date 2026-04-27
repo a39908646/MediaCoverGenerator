@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import threading
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -43,7 +43,7 @@ class JobManager:
         summary = JobSummary(
             id=job_id,
             status="pending",
-            created_at=datetime.utcnow(),
+            created_at=datetime.now(timezone.utc),
             title=title or "准备生成封面",
             library_ids=library_ids or [],
         )
@@ -89,7 +89,7 @@ class JobManager:
 
     def _run(self, job_id: str, library_ids: list[str]) -> None:
         cancel_event = self._cancel_events[job_id]
-        self._update(job_id, status="running", started_at=datetime.utcnow(), message="Loading configuration")
+        self._update(job_id, status="running", started_at=datetime.now(timezone.utc), message="Loading configuration")
         try:
             service = self._get_service()
             config = self.config_repository.load()
@@ -111,7 +111,7 @@ class JobManager:
 
             for index, library in enumerate(target_libraries, start=1):
                 if cancel_event.is_set():
-                    self._update(job_id, status="cancelled", finished_at=datetime.utcnow(), message="Job cancelled")
+                    self._update(job_id, status="cancelled", finished_at=datetime.now(timezone.utc), message="Job cancelled")
                     return
                 self._update(job_id, message=f"Processing {library.name} ({index}/{len(target_libraries)})")
                 try:
@@ -128,14 +128,14 @@ class JobManager:
                     )
             current = self._snapshot(job_id)
             final_status = "completed" if current.failed_libraries == 0 else "failed"
-            self._update(job_id, status=final_status, finished_at=datetime.utcnow(), message="Job finished")
+            self._update(job_id, status=final_status, finished_at=datetime.now(timezone.utc), message="Job finished")
         except Exception as exc:
             logger.exception("Job failed")
             current = self._snapshot(job_id)
             self._update(
                 job_id,
                 status="failed",
-                finished_at=datetime.utcnow(),
+                finished_at=datetime.now(timezone.utc),
                 message=str(exc),
                 errors=current.errors + [str(exc)],
             )
