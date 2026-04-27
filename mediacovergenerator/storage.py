@@ -7,7 +7,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-from mediacovergenerator.models import AppConfig, HistoryRecord, LibraryTitleConfig
+from mediacovergenerator.models import AppConfig, HistoryRecord, JobSummary, LibraryTitleConfig
 from mediacovergenerator.titles import dump_title_config, load_title_config
 
 
@@ -203,6 +203,35 @@ class HistoryRepository:
                         pass
             self.save([])
             return count
+
+
+class JobRepository:
+    def __init__(self, project_root: Path):
+        self.project_root = project_root
+        self._lock = threading.RLock()
+        self.jobs_path = project_root / "data" / "jobs.json"
+
+    def load(self) -> list[JobSummary]:
+        with self._lock:
+            if not self.jobs_path.exists():
+                return []
+            data = json.loads(self.jobs_path.read_text(encoding="utf-8"))
+            return [JobSummary.model_validate(item) for item in data]
+
+    def save(self, jobs: list[JobSummary]) -> None:
+        with self._lock:
+            self.jobs_path.parent.mkdir(parents=True, exist_ok=True)
+            self.jobs_path.write_text(
+                json.dumps([job.model_dump(mode="json") for job in jobs], ensure_ascii=False, indent=2),
+                encoding="utf-8",
+            )
+
+    def list_recent(self, limit: int = 200) -> list[JobSummary]:
+        return self.load()[:limit]
+
+    def replace(self, jobs: list[JobSummary], limit: int = 200) -> None:
+        ordered = sorted(jobs, key=lambda item: item.created_at, reverse=True)
+        self.save(ordered[:limit])
 
 
 class WebhookRepository:

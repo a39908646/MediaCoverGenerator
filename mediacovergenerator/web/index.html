@@ -1539,7 +1539,6 @@
             <span class="badge">${normalizeStyleName(item.style)}</span>
           </div>
           <div class="meta">${formatDateTime(item.created_at)}</div>
-          <div class="meta">来源项目: ${item.source_item_ids.join(", ") || "本地输入目录"}</div>
           <div class="mini-actions">
             ${item.saved_path ? `<a href="/history/${item.id}/image" target="_blank" rel="noreferrer">查看图片</a>` : ""}
             <button class="secondary" onclick="deleteHistory('${item.id}')">删除记录</button>

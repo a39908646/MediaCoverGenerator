@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING
 
 from mediacovergenerator.logging import logger
 from mediacovergenerator.models import JobSummary
-from mediacovergenerator.storage import ConfigRepository, HistoryRepository
+from mediacovergenerator.storage import ConfigRepository, HistoryRepository, JobRepository
 
 if TYPE_CHECKING:
     from mediacovergenerator.service import LibraryUpdateService
@@ -19,10 +19,12 @@ class JobManager:
         self.project_root = project_root
         self.config_repository = config_repository
         self.history_repository = history_repository
+        self.job_repository = JobRepository(project_root)
         self._service: LibraryUpdateService | None = None
-        self._jobs: dict[str, JobSummary] = {}
+        self._jobs: dict[str, JobSummary] = {job.id: job for job in self.job_repository.list_recent()}
         self._cancel_events: dict[str, threading.Event] = {}
         self._lock = threading.Lock()
+        self._restore_interrupted_jobs()
 
     def _get_service(self) -> "LibraryUpdateService":
         if self._service is None:
@@ -51,6 +53,7 @@ class JobManager:
         with self._lock:
             self._jobs[job_id] = summary
             self._cancel_events[job_id] = cancel_event
+            self._save_locked()
         thread = threading.Thread(target=self._run, args=(job_id, library_ids or []), daemon=True)
         thread.start()
         return summary
@@ -71,6 +74,7 @@ class JobManager:
                 raise ValueError("Active job cannot be deleted")
             self._jobs.pop(job_id, None)
             self._cancel_events.pop(job_id, None)
+            self._save_locked()
             return True
 
     def delete_many(self, job_ids: list[str]) -> tuple[int, list[str], list[str]]:
@@ -144,10 +148,33 @@ class JobManager:
         with self._lock:
             current = self._jobs[job_id]
             self._jobs[job_id] = current.model_copy(update=changes)
+            self._save_locked()
 
     def _snapshot(self, job_id: str) -> JobSummary:
         with self._lock:
             return self._jobs[job_id]
+
+    def _restore_interrupted_jobs(self) -> None:
+        now = datetime.now(timezone.utc)
+        with self._lock:
+            updated = False
+            for job_id, job in list(self._jobs.items()):
+                if job.status not in {"pending", "running"}:
+                    continue
+                self._jobs[job_id] = job.model_copy(
+                    update={
+                        "status": "cancelled",
+                        "finished_at": now,
+                        "message": "Service restarted",
+                        "cancel_requested": True,
+                    }
+                )
+                updated = True
+            if updated:
+                self._save_locked()
+
+    def _save_locked(self) -> None:
+        self.job_repository.replace(list(self._jobs.values()))
 
     @staticmethod
     def _build_title(libraries) -> str:
